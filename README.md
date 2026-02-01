@@ -4,72 +4,88 @@
 
 BlackHole Fund is a quantitative investment fund specializing in **Gold (XAU/USD)** trading within the forex market. Our infrastructure is designed for institutional-grade execution, combining cutting-edge quantitative analysis with robust risk management systems.
 
-Our trading systems operate across **two AWS regions** (London & Manchester) ensuring high availability, disaster recovery, and optimal latency to major financial centers.
+Our trading systems operate across **two AWS regions** (London & Manchester) ensuring high availability, disaster recovery, and optimal latency to major liquidity providers.
 
 ## System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                              BLACKHOLE TRADING INFRASTRUCTURE                            │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                          │
-│   ┌─────────────────┐        ┌─────────────────┐        ┌─────────────────┐            │
-│   │  Market Data    │        │   Bloomberg     │        │   Exchange      │            │
-│   │  Feeds (Tick)   │        │   Terminal API  │        │   Feeds         │            │
-│   └────────┬────────┘        └────────┬────────┘        └────────┬────────┘            │
-│            │                          │                          │                      │
-│            └──────────────────────────┼──────────────────────────┘                      │
-│                                       ▼                                                  │
-│                        ┌──────────────────────────────┐                                 │
-│                        │      MARKET CONNECTOR        │                                 │
-│                        │      (bh-market-gateway)     │                                 │
-│                        │         [Go + Rust]          │                                 │
-│                        └──────────────┬───────────────┘                                 │
-│                                       │                                                  │
-│           ┌───────────────────────────┼───────────────────────────┐                     │
-│           ▼                           ▼                           ▼                     │
-│  ┌─────────────────┐      ┌─────────────────────┐      ┌─────────────────┐             │
-│  │   MT5 TICK      │      │    QUANT ENGINE     │      │   NEWS/EVENTS   │             │
-│  │   (mt5_tick)    │◄────►│  (bh-quant-engine)  │◄────►│   PROCESSOR     │             │
-│  │     [C++]       │      │      [Python]       │      │                 │             │
-│  └────────┬────────┘      └─────────┬───────────┘      └─────────────────┘             │
-│           │                         │                                                   │
-│           │                         │                                                   │
-│           ▼                         ▼                                                   │
-│  ┌─────────────────────────────────────────────────────────────────────────┐           │
-│  │                         ORCHESTRATOR (bh-core)                          │           │
-│  │                              [Go]                                       │           │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   │           │
-│  │  │  Message    │  │  Service    │  │  Health     │  │  Config     │   │           │
-│  │  │  Router     │  │  Discovery  │  │  Monitor    │  │  Manager    │   │           │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘   │           │
-│  └─────────────────────────────────┬───────────────────────────────────────┘           │
-│                                    │                                                    │
-│           ┌────────────────────────┼────────────────────────┐                          │
-│           ▼                        ▼                        ▼                          │
-│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────────┐            │
-│  │  RISK ENGINE    │    │   CIRCUIT       │    │     MT5 EXECUTOR        │            │
-│  │  (bh-risk)      │───►│   BREAKER       │───►│     (mt5_executor)      │            │
-│  │     [Go]        │    │   (bh-guardian) │    │        [C++]            │            │
-│  └─────────────────┘    │     [Rust]      │    └───────────┬─────────────┘            │
-│                         └─────────────────┘                │                           │
-│                                                            ▼                           │
-│                                                   ┌─────────────────┐                  │
-│                                                   │   MT5 BROKER    │                  │
-│                                                   │   CONNECTION    │                  │
-│                                                   └─────────────────┘                  │
-│                                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────────────┐           │
-│  │                         DATABASE LAYER                                   │           │
-│  │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   │           │
-│  │   │ TimescaleDB │  │   Redis     │  │ PostgreSQL  │  │ InfluxDB    │   │           │
-│  │   │ (Tick Data) │  │  (Cache)    │  │ (Analytics) │  │ (Metrics)   │   │           │
-│  │   └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘   │           │
-│  └─────────────────────────────────────────────────────────────────────────┘           │
-│                                                                                         │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph External["External Data Sources"]
+        Bloomberg["Bloomberg B-PIPE"]
+        Reuters["Reuters Elektron"]
+        Exchanges["Exchange Feeds\n(LBMA, COMEX, ICE)"]
+        News["News & Events API"]
+    end
 
-                    AWS eu-west-2 (London) ◄──── Active-Active ────► AWS eu-west-1 (Manchester)
+    subgraph Gateway["Market Gateway Layer"]
+        MG["bh-market-gateway\n[Go + Rust]"]
+    end
+
+    subgraph Core["Core Processing"]
+        MT5T["mt5_tick\n[C++]"]
+        Quant["bh-quant-engine\n[Python]"]
+        Orchestrator["bh-core\n[Go]"]
+    end
+
+    subgraph RiskLayer["Risk & Execution"]
+        Risk["bh-risk\n[Go]"]
+        Guardian["bh-guardian\n[Rust]\nCircuit Breaker"]
+        Executor["mt5_executor\n[C++]"]
+    end
+
+    subgraph Data["Database Layer"]
+        Timescale["TimescaleDB\n(Tick Data)"]
+        Redis["Redis\n(Cache/Streams)"]
+        Postgres["PostgreSQL\n(Analytics)"]
+        Influx["InfluxDB\n(Metrics)"]
+    end
+
+    subgraph Broker["Broker Connection"]
+        MT5["MT5 Broker\n(Low Latency Deploy)"]
+    end
+
+    Bloomberg --> MG
+    Reuters --> MG
+    Exchanges --> MG
+    News --> MG
+
+    MG --> MT5T
+    MG --> Quant
+    MG --> Orchestrator
+
+    MT5T --> Orchestrator
+    Quant --> Orchestrator
+    Quant --> Risk
+
+    Orchestrator --> Risk
+    Risk --> Guardian
+    Guardian --> Executor
+    Executor --> MT5
+
+    Orchestrator --> Data
+    Risk --> Data
+    Quant --> Data
+```
+
+## Multi-Region Deployment
+
+```mermaid
+flowchart LR
+    subgraph London["AWS eu-west-2 (London)"]
+        L_EKS["EKS Cluster\n(Primary)"]
+        L_DB["Database\n(Primary)"]
+        L_Broker["Broker Deploy\n(Near LP)"]
+    end
+
+    subgraph Manchester["AWS eu-west-1 (Manchester)"]
+        M_EKS["EKS Cluster\n(DR)"]
+        M_DB["Database\n(Replica)"]
+        M_Broker["Broker Deploy\n(Near LP)"]
+    end
+
+    L_EKS <-->|"Cross-Region Sync"| M_EKS
+    L_DB <-->|"Async Replication"| M_DB
+    L_Broker <-->|"Failover"| M_Broker
 ```
 
 ## Core Repositories
@@ -80,17 +96,114 @@ Our trading systems operate across **two AWS regions** (London & Manchester) ens
 | [mt5_tick](docs/repositories/mt5_tick.md) | C++ | Real-time tick data processor |
 | [bh-risk](docs/repositories/bh-risk.md) | Go | Risk management and position sizing engine |
 | [bh-guardian](docs/repositories/bh-guardian.md) | Rust | Daily circuit breaker and system protection |
-| [bh-quant-engine](docs/repositories/bh-quant-engine.md) | Python | Quantitative analysis and volatility modeling |
+| [bh-quant-engine](docs/repositories/bh-quant-engine.md) | Python | Quantitative analysis and signal generation |
 | [bh-core](docs/repositories/bh-core.md) | Go | Central orchestration and service coordination |
 | [bh-market-gateway](docs/repositories/bh-market-gateway.md) | Go/Rust | Market data connectors and feed handlers |
+
+## Quantitative Decision Engine
+
+Our trading decisions are driven by a sophisticated **multi-indicator weighted scoring system**. Each quantitative indicator contributes to the final trading decision with configurable weights and thresholds.
+
+```mermaid
+flowchart TB
+    subgraph Indicators["Quantitative Indicators (20+)"]
+        direction TB
+        Vol["Volatility Models\n(GARCH Family)"]
+        Regime["Regime Detection\n(HMM, Markov)"]
+        Mean["Mean Reversion\n(Hurst, OU Process)"]
+        Momentum["Momentum\n(Spectral, Wavelets)"]
+        Risk["Risk Metrics\n(VaR, CVaR, Greeks)"]
+        Micro["Microstructure\n(Order Flow, Toxicity)"]
+    end
+
+    subgraph Weights["Weight & Scoring Engine"]
+        Scorer["Indicator Scorer\nw1, w2, ... wn"]
+        Agg["Score Aggregator\nΣ(wi × si)"]
+        Conf["Confidence Calculator"]
+    end
+
+    subgraph Decision["Decision Matrix"]
+        Entry["Entry Signal\n(Long/Short/Neutral)"]
+        Size["Position Sizing\n(Kelly/Vol-Adjusted)"]
+        Exit["Exit Rules\n(TP/SL/Time)"]
+    end
+
+    Vol --> Scorer
+    Regime --> Scorer
+    Mean --> Scorer
+    Momentum --> Scorer
+    Risk --> Scorer
+    Micro --> Scorer
+
+    Scorer --> Agg
+    Agg --> Conf
+    Conf --> Entry
+    Conf --> Size
+    Conf --> Exit
+```
+
+### Indicator Categories & Weights
+
+| Category | Indicators | Weight Range | Update Frequency |
+|----------|------------|--------------|------------------|
+| **Volatility** | GARCH, EGARCH, FIGARCH, Realized Vol, Range Vol | 15-25% | 1min - 1hr |
+| **Regime** | HMM States, RS-GARCH, Structural Breaks | 10-20% | 1hr - 4hr |
+| **Mean Reversion** | Hurst Exponent, OU Process, Half-Life, Z-Score | 10-15% | 5min - 1hr |
+| **Momentum** | Spectral Analysis, Wavelet Decomposition, Trend Strength | 10-15% | 1min - 15min |
+| **Risk** | VaR, CVaR, Drawdown, Correlation, Beta | 15-20% | Real-time |
+| **Microstructure** | Order Flow Imbalance, VPIN, Kyle's Lambda | 5-15% | Tick-level |
+| **Sentiment** | News Sentiment, COT Positioning, Options Flow | 5-10% | 15min - Daily |
+
+### Simulation & Calculation Pipeline
+
+```mermaid
+flowchart LR
+    subgraph Input["Market Data"]
+        Ticks["Tick Data"]
+        Bars["OHLCV Bars"]
+        Depth["Order Book"]
+    end
+
+    subgraph Calcs["Parallel Calculations"]
+        MC["Monte Carlo\n10K paths"]
+        Bootstrap["Bootstrap\nConfidence"]
+        Backtest["Walk-Forward\nValidation"]
+        Stress["Stress\nScenarios"]
+    end
+
+    subgraph Models["Model Ensemble"]
+        Parametric["Parametric\nModels"]
+        NonParam["Non-Parametric\nModels"]
+        ML["ML/Statistical\nLearning"]
+    end
+
+    subgraph Output["Trading Signals"]
+        Signal["Composite\nSignal"]
+        Confidence["Confidence\nInterval"]
+        Risk["Risk\nBudget"]
+    end
+
+    Ticks --> Calcs
+    Bars --> Calcs
+    Depth --> Calcs
+
+    Calcs --> Models
+    Models --> Output
+```
 
 ## Key Features
 
 ### Quantitative Analysis
-- **Volatility Forecasting**: GARCH, EGARCH, TGARCH, FIGARCH models
-- **Market Regime Detection**: Hidden Markov Models, Regime-Switching GARCH
-- **Risk Metrics**: Monte Carlo VaR, CVaR/Expected Shortfall, Stress Testing
-- **Statistical Indicators**: Hurst Exponent, Cointegration Analysis, Kalman Filtering
+- **20+ Statistical Indicators** with individual weights and confidence scores
+- **Ensemble Methods**: Combining multiple models for robust signal generation
+- **Adaptive Weights**: Dynamic weight adjustment based on regime and performance
+- **Multi-Timeframe Analysis**: From tick-level to daily aggregations
+
+### Simulation Capabilities
+- **Monte Carlo Simulations**: 10,000+ paths for VaR/CVaR estimation
+- **Bootstrap Methods**: Non-parametric confidence intervals
+- **Stress Testing**: Historical and hypothetical scenarios
+- **Walk-Forward Optimization**: Out-of-sample validation
 
 ### Risk Management
 - Real-time position monitoring and exposure limits
@@ -100,7 +213,7 @@ Our trading systems operate across **two AWS regions** (London & Manchester) ens
 
 ### Infrastructure
 - **Dual-region AWS deployment** for high availability
-- Sub-millisecond internal message latency
+- **~5ms execution latency** (deployed near liquidity providers)
 - Automated failover and disaster recovery
 - Comprehensive monitoring and alerting
 
@@ -119,7 +232,7 @@ Our trading systems operate across **two AWS regions** (London & Manchester) ens
 | **Execution** | C++ 20, MetaTrader 5 API |
 | **Risk & Orchestration** | Go 1.22+, gRPC, Protocol Buffers |
 | **Circuit Breaker** | Rust 1.75+, Tokio |
-| **Quantitative** | Python 3.11+, NumPy, SciPy, Arch, Statsmodels |
+| **Quantitative** | Python 3.11+, NumPy, SciPy, Arch, Statsmodels, Scikit-learn |
 | **Messaging** | ZeroMQ, Redis Streams, Apache Kafka |
 | **Databases** | TimescaleDB, PostgreSQL, Redis, InfluxDB |
 | **Infrastructure** | AWS EKS, Terraform, Prometheus, Grafana |
