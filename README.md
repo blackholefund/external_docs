@@ -219,6 +219,13 @@ flowchart LR
 
 ## Documentation
 
+### Investor Documents
+- [Executive Summary](docs/EXECUTIVE_SUMMARY.md) - Fund overview for prospective investors
+- [Capacity Analysis](docs/CAPACITY_ANALYSIS.md) - AUM limits and market impact
+- [Operational Due Diligence](docs/OPERATIONAL_DUE_DILIGENCE.md) - ODD information
+- [Disclaimers & Risk Factors](docs/DISCLAIMERS.md) - Important disclosures
+
+### Technical Documentation
 - [Architecture Overview](docs/architecture/overview.md)
 - [Communication Protocols](docs/architecture/communication.md)
 - [Quantitative Models](docs/quantitative/models.md)

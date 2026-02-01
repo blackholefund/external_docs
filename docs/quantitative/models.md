@@ -2,7 +2,21 @@
 
 ## Overview
 
-BlackHole Fund employs a sophisticated suite of **20+ quantitative indicators** organized into a **weighted decision system**. Each indicator contributes to the final trading decision through configurable weights, confidence scores, and adaptive thresholds.
+BlackHole Fund's quantitative engine includes a library of **24 indicator modules** organized into 7 clusters. **Not all indicators are active simultaneously** - the system dynamically selects 8-12 core indicators based on current market regime, with weights adjusted accordingly.
+
+### Active vs. Available Indicators
+
+| Status | Count | Description |
+|--------|-------|-------------|
+| **Core (Always Active)** | 6 | Volatility forecast, regime detection, VaR, drawdown |
+| **Regime-Dependent** | 6-8 | Selected based on current market conditions |
+| **Available (Inactive)** | 10-12 | Research modules, activated when conditions warrant |
+
+This modular approach:
+- Reduces overfitting risk from using too many correlated signals
+- Allows rapid adaptation to changing market conditions
+- Maintains research pipeline for continuous improvement
+- Keeps computational overhead manageable
 
 ## Decision Engine Architecture
 
