@@ -2,94 +2,81 @@
 
 ## Overview
 
-This document provides information to assist prospective investors in conducting operational due diligence on BlackHole Fund. It addresses common ODD questions across key operational areas.
+This document provides information to assist prospective investors in conducting due diligence on BlackHole Fund's PAMM (Percentage Allocation Management Module) trading operation. It addresses common questions across key operational areas.
 
-## Organizational Structure
+**Important:** BlackHole Fund operates as a PAMM account manager, NOT a regulated investment fund. Your capital remains in your own broker account at all times.
 
-### Legal Structure
+## Operational Structure
+
+### PAMM Model
 
 ```mermaid
 flowchart TB
-    subgraph Structure["Fund Structure"]
-        GP["General Partner\n(Management Co.)"]
-        Fund["BlackHole Fund LP\n(Cayman Islands)"]
-        Feeder["Feeder Funds\n(if applicable)"]
+    subgraph Manager["BlackHole Trading"]
+        Master["Master Account\n(Strategy Execution)"]
+        Systems["Trading Systems\n& Infrastructure"]
     end
 
-    GP --> Fund
-    Feeder --> Fund
+    subgraph Broker["Broker (OneEquity)"]
+        PAMM["PAMM Platform"]
+        Inv1["Investor Account 1"]
+        Inv2["Investor Account 2"]
+        Inv3["Investor Account N"]
+    end
+
+    Master --> PAMM
+    Systems --> Master
+    PAMM --> Inv1
+    PAMM --> Inv2
+    PAMM --> Inv3
 ```
 
-| Entity | Jurisdiction | Purpose |
-|--------|--------------|---------|
-| Management Company | [Jurisdiction] | Investment manager |
-| Fund LP | Cayman Islands | Main fund vehicle |
-| GP Entity | [Jurisdiction] | General partner |
+| Component | Description |
+|-----------|-------------|
+| Master Account | BlackHole's trading account where strategies execute |
+| PAMM Platform | Broker system that copies trades proportionally |
+| Investor Accounts | Individual accounts owned by each investor |
 
 ### Key Personnel
 
-| Role | Experience | Tenure |
-|------|------------|--------|
-| Portfolio Manager | 15+ years quant trading | Founding |
-| Chief Risk Officer | 12+ years risk management | Founding |
-| Head of Technology | 10+ years fintech | Founding |
-| CFO/COO | 18+ years fund operations | 3 years |
-| Chief Compliance Officer | 10+ years compliance | 2 years |
+| Role | Responsibility |
+|------|----------------|
+| Lead Trader | Strategy development and execution |
+| Risk Manager | Position monitoring and risk controls |
+| Systems Engineer | Trading infrastructure and automation |
 
-### Succession Planning
+### Operational Continuity
 
-- Deputy PM identified and trained
-- Key person insurance in place
-- Documentation of all systems and processes
-- Cross-training across critical functions
+- Fully documented trading systems and processes
+- Automated execution reduces key-person dependency
+- Cross-training on critical functions
+- Systems designed for autonomous operation
 
 ## Service Providers
 
-### Prime Broker
+### Broker & Execution
 
-| Attribute | Details |
-|-----------|---------|
-| Name | [Tier-1 Prime Broker] |
-| Relationship Since | [Date] |
-| Services | Execution, custody, financing |
-| Segregation | Fully segregated client accounts |
-| Insurance | SIPC + excess coverage |
+| Provider | Role |
+|----------|------|
+| **Tier 1 Liquidity** | Primary execution venue for gold |
+| **OneEquity** | PAMM platform and retail execution |
 
-### Administrator
+### Broker Features
 
-| Attribute | Details |
-|-----------|---------|
-| Name | [Independent Administrator] |
-| Relationship Since | [Date] |
-| Services | NAV calculation, investor services |
-| Frequency | Weekly NAV, monthly statements |
-| Independence | No affiliation with manager |
+| Feature | Details |
+|---------|---------|
+| Account Segregation | Client funds segregated per regulations |
+| PAMM Platform | Automated trade copying and allocation |
+| Reporting | Real-time position and P&L visibility |
+| Withdrawals | Direct through broker platform |
 
-### Auditor
-
-| Attribute | Details |
-|-----------|---------|
-| Name | [Big-4 Firm] |
-| Relationship Since | [Date] |
-| Scope | Annual financial audit |
-| Opinion History | Unqualified opinions |
-
-### Legal Counsel
-
-| Attribute | Details |
-|-----------|---------|
-| Fund Counsel | [Law Firm] |
-| Regulatory Counsel | [Law Firm] |
-| Specialty | Investment fund law |
-
-### Other Service Providers
+### Infrastructure Providers
 
 | Service | Provider |
 |---------|----------|
-| IT Security | [Security Firm] |
-| Compliance Monitoring | [Compliance Firm] |
-| Tax Advisor | [Tax Firm] |
-| Insurance Broker | [Insurance Firm] |
+| Cloud Infrastructure | AWS (London + Manchester) |
+| Market Data | Bloomberg, Reuters |
+| Monitoring | Prometheus, Grafana |
 
 ## Technology & Infrastructure
 
@@ -197,122 +184,127 @@ flowchart TB
 - Monthly risk reports to Board
 - Quarterly risk committee meetings
 
-## Compliance
+## Regulatory Status
 
-### Regulatory Status
+### Important Disclosure
 
-| Jurisdiction | Registration | Status |
-|--------------|--------------|--------|
-| [Primary] | [Registration Type] | Active |
-| [Secondary] | [Registration Type] | Active |
+**BlackHole Fund is NOT a regulated investment fund.**
 
-### Compliance Program
+| Aspect | Status |
+|--------|--------|
+| Fund Registration | None - PAMM account management only |
+| Manager Registration | Not registered as investment adviser |
+| Investor Protection | None beyond broker's own protections |
 
-| Component | Description |
-|-----------|-------------|
-| Policies | Written compliance manual |
-| Testing | Annual compliance review |
-| Training | Annual compliance training |
-| Reporting | Quarterly compliance reports |
+### Broker Regulation
 
-### AML/KYC
+Your funds are held at OneEquity (or other supported broker), which maintains its own regulatory status. Please verify:
 
-| Requirement | Process |
-|-------------|---------|
-| Investor onboarding | Full KYC documentation |
-| Ongoing monitoring | Annual refresh |
-| Sanctions screening | Daily automated |
-| Suspicious activity | SAR procedures |
+- Broker's regulatory registration
+- Client fund segregation policies
+- Deposit protection schemes (if any)
 
-## Valuation
+### Investor Responsibility
 
-### NAV Calculation
+| Requirement | Responsibility |
+|-------------|----------------|
+| KYC/AML | Handled by broker during account opening |
+| Tax Reporting | Investor's responsibility |
+| Regulatory Compliance | Investor must comply with local laws |
 
-| Step | Responsibility | Verification |
-|------|----------------|--------------|
-| Price sourcing | Administrator | Multiple sources |
-| Position valuation | Administrator | Independent calc |
-| NAV calculation | Administrator | Manager review |
-| NAV approval | Manager | Sign-off required |
+## Account Valuation
 
-### Pricing Sources
+### Real-Time Transparency
 
-| Asset Type | Primary Source | Secondary Source |
-|------------|----------------|------------------|
-| Spot Gold | Bloomberg | Reuters |
-| Futures | Exchange | Bloomberg |
-| Cash | Bank statements | N/A |
+PAMM accounts provide complete transparency through the broker platform:
 
-### Fair Value Policy
+| Information | Access |
+|-------------|--------|
+| Open Positions | Real-time via broker |
+| Account Balance | Real-time via broker |
+| Trade History | Full history in platform |
+| P&L | Real-time floating and realized |
 
-- Liquid assets: Market prices
-- Illiquid assets: N/A (fund holds only liquid instruments)
-- Pricing committee: Quarterly review
+### Pricing
 
-## Reporting
+| Asset | Source |
+|-------|--------|
+| XAU/USD Spot | Broker feed (aggregated liquidity) |
+| Account Equity | Broker calculation |
+| Performance | PAMM platform metrics |
 
-### Investor Reporting
+## Reporting & Transparency
+
+### What You Can See
+
+| Information | How to Access |
+|-------------|---------------|
+| All Trades | Broker platform (real-time) |
+| Position Sizes | Broker platform (real-time) |
+| Floating P&L | Broker platform (real-time) |
+| Performance Stats | PAMM leaderboard |
+| Historical Returns | Broker reports |
+
+### What We Provide
 
 | Report | Frequency | Content |
 |--------|-----------|---------|
-| NAV Statement | Weekly | Positions, NAV, returns |
-| Monthly Letter | Monthly | Commentary, attribution |
-| Quarterly Report | Quarterly | Detailed performance |
-| Annual Report | Annual | Audited financials |
-| Tax Documents | Annual | K-1 / tax statements |
+| Performance Summary | Monthly | Returns, drawdown, key metrics |
+| Strategy Commentary | Monthly | Market outlook, positioning |
+| Risk Report | On request | VaR, exposure analysis |
 
-### Regulatory Reporting
+**Note:** All official account data comes from your broker. Our reports supplement but do not replace broker statements.
 
-| Report | Jurisdiction | Frequency |
-|--------|--------------|-----------|
-| Form PF | US (if applicable) | Quarterly |
-| AIFMD | EU (if applicable) | Quarterly |
-| Local filings | As required | As required |
+## Protection & Insurance
 
-## Insurance
+### Broker-Level Protection
 
-### Coverage
+Your funds are protected by your broker's measures:
 
-| Type | Coverage | Carrier |
-|------|----------|---------|
-| D&O | $[X]M | [Carrier] |
-| E&O | $[X]M | [Carrier] |
-| Cyber | $[X]M | [Carrier] |
-| Crime/Fidelity | $[X]M | [Carrier] |
-| Key Person | $[X]M | [Carrier] |
+| Protection | Details |
+|------------|---------|
+| Segregated Accounts | Client funds separate from broker |
+| Broker Regulation | Check broker's regulatory status |
+| Deposit Insurance | Varies by broker and jurisdiction |
 
-## ODD Checklist
+### Our Operational Protections
 
-### Documents Available for Review
+| Measure | Implementation |
+|---------|----------------|
+| System Redundancy | Dual-region deployment |
+| Risk Controls | Automated circuit breakers |
+| Access Security | MFA, encrypted communications |
 
-| Document | Available |
-|----------|-----------|
-| PPM / Offering Memo | Yes |
-| LPA / Fund Documents | Yes |
-| Compliance Manual | Yes |
-| Business Continuity Plan | Yes |
-| Cybersecurity Policy | Yes |
-| Trade Reconciliation Samples | Yes |
-| Risk Reports (Sample) | Yes |
-| Audited Financials | Yes (prior years) |
-| Form ADV (if applicable) | Yes |
+**Important:** We do not hold your funds. Protection depends on your broker.
 
-### On-Site Due Diligence
+## Due Diligence Information
 
-We welcome on-site visits covering:
-- Office tour and infrastructure review
-- Meetings with key personnel
-- System demonstrations
-- Documentation review
-- Compliance and risk discussions
+### Information Available
 
-### Contact for ODD
+| Information | Available |
+|-------------|-----------|
+| Track Record | Yes (via PAMM platform) |
+| Trading Strategy Overview | Yes |
+| Risk Management Description | Yes |
+| Infrastructure Overview | Yes |
+| Fee Structure | Yes |
 
-For operational due diligence inquiries:
-- Investor Relations: [Contact]
-- Compliance: [Contact]
-- Operations: [Contact]
+### Questions to Ask Your Broker
+
+Before joining any PAMM, verify with your broker:
+
+1. How are client funds segregated?
+2. What regulatory oversight applies?
+3. What deposit protection exists?
+4. How are PAMM fees calculated and deducted?
+5. What are withdrawal terms and timing?
+
+### Contact
+
+For questions about joining the PAMM:
+- Telegram: [Contact]
+- Email: [Contact]
 
 ---
 
-*This document is provided for informational purposes to assist with investor due diligence. Information is current as of the document date and subject to change.*
+**Disclaimer:** BlackHole Fund is a PAMM trading operation, not a regulated investment fund. This document is for informational purposes only. Your broker is the custodian of your funds - conduct due diligence on your broker's regulatory status and protections.

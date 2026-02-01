@@ -2,7 +2,7 @@
 
 ## Overview
 
-BlackHole Fund is a quantitative investment fund specializing in **Gold (XAU/USD)** trading within the forex market. Our infrastructure is designed for institutional-grade execution, combining cutting-edge quantitative analysis with robust risk management systems.
+BlackHole Fund is a quantitative trading operation specializing in **Gold (XAU/USD)** within the forex market. We manage capital through **PAMM (Percentage Allocation Management Module)** accounts, allowing investors to participate proportionally in our systematic trading strategies.
 
 Our trading systems operate across **two AWS regions** (London & Manchester) ensuring high availability, disaster recovery, and optimal latency to major liquidity providers.
 
@@ -244,13 +244,15 @@ flowchart LR
 | **Databases** | TimescaleDB, PostgreSQL, Redis, InfluxDB |
 | **Infrastructure** | AWS EKS, Terraform, Prometheus, Grafana |
 
-## Compliance & Security
+## Security
 
-All systems operate under strict compliance with financial regulations. Security measures include:
+Our systems implement comprehensive security measures:
 - End-to-end encryption for all inter-service communication
-- Hardware Security Modules (HSM) for key management
+- Secure key management
 - Comprehensive audit logging
 - Role-based access control (RBAC)
+
+**Note:** BlackHole Fund operates as a PAMM account manager, not a regulated investment fund. See [Disclaimers](docs/DISCLAIMERS.md) for important information.
 
 ---
 

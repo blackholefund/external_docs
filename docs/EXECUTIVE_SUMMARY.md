@@ -1,161 +1,151 @@
 # BlackHole Fund - Executive Summary
 
-## Fund Overview
+## Overview
 
-**BlackHole Fund** is a systematic quantitative fund specializing in gold (XAU/USD) trading within the forex market. The fund employs a multi-factor, regime-adaptive strategy designed to capture opportunities across varying market conditions while maintaining strict risk controls.
+**BlackHole Fund** is a systematic quantitative trading operation specializing in gold (XAU/USD) within the forex market. We manage capital through **PAMM (Percentage Allocation Management Module)** accounts, allowing investors to allocate funds that are traded proportionally alongside the master account.
 
 | Attribute | Details |
 |-----------|---------|
 | **Strategy** | Systematic Quantitative - Gold Focus |
 | **Asset Class** | Forex (XAU/USD) |
+| **Structure** | PAMM Account Management |
 | **Trading Style** | Medium-frequency (minutes to days) |
 | **Target Volatility** | 8-12% annualized |
 | **Max Drawdown Limit** | 15% peak-to-trough |
 | **Daily Stop Loss** | 1% hard limit (automated) |
+
+## How PAMM Works
+
+```mermaid
+flowchart TB
+    subgraph Master["Master Account"]
+        MA["BlackHole Trading\n(Strategy Execution)"]
+    end
+
+    subgraph PAMM["PAMM Allocation"]
+        I1["Investor 1\n$100K (20%)"]
+        I2["Investor 2\n$250K (50%)"]
+        I3["Investor 3\n$150K (30%)"]
+    end
+
+    subgraph Results["Proportional Results"]
+        R1["P&L allocated\nby percentage"]
+    end
+
+    MA --> PAMM
+    PAMM --> Results
+```
+
+**Key Features:**
+- Each investor maintains their own account at the broker
+- Trades are copied proportionally to each PAMM account
+- Investors can deposit/withdraw according to broker terms
+- Full transparency: investors see all trades in real-time
+- Segregated funds: your money stays in YOUR account
 
 ## Investment Philosophy
 
 ### Core Beliefs
 
 1. **Gold as a Macro Asset** - Gold exhibits predictable behavior relative to rates, dollar strength, and risk sentiment
-2. **Regime Matters** - Different market regimes require different approaches; one-size-fits-all fails
-3. **Risk First** - Superior risk-adjusted returns come from avoiding large losses, not chasing large gains
-4. **Systematic Execution** - Emotion-free, rule-based trading removes behavioral biases
+2. **Regime Matters** - Different market regimes require different approaches
+3. **Risk First** - Superior returns come from avoiding large losses
+4. **Systematic Execution** - Rule-based trading removes behavioral biases
 
-### Strategy Components
+## Performance Targets
 
-```mermaid
-flowchart LR
-    subgraph Inputs["Market Inputs"]
-        Price["Price Data"]
-        Vol["Volatility"]
-        Macro["Macro Indicators"]
-    end
-
-    subgraph Analysis["Analysis"]
-        Regime["Regime Detection"]
-        Signal["Signal Generation"]
-        Risk["Risk Assessment"]
-    end
-
-    subgraph Execution["Execution"]
-        Size["Position Sizing"]
-        Entry["Entry/Exit"]
-        Monitor["Monitoring"]
-    end
-
-    Inputs --> Analysis --> Execution
-```
-
-## Performance Characteristics
-
-### Target Profile
-
-| Metric | Target | Rationale |
-|--------|--------|-----------|
-| **Annual Return** | 12-18% | Achievable with moderate leverage |
-| **Sharpe Ratio** | 1.2 - 1.8 | Risk-adjusted performance focus |
-| **Sortino Ratio** | > 1.5 | Downside risk emphasis |
-| **Max Drawdown** | < 15% | Capital preservation |
+| Metric | Target | Notes |
+|--------|--------|-------|
+| **Annual Return** | 12-18% | Realistic for systematic gold |
+| **Sharpe Ratio** | 1.2 - 1.8 | Risk-adjusted focus |
+| **Max Drawdown** | < 15% | Hard limit enforced |
 | **Win Rate** | 45-55% | Not dependent on high hit rate |
-| **Profit Factor** | > 1.5 | Winners larger than losers |
-
-### Expected Behavior by Market Regime
-
-| Regime | Expected Performance | Notes |
-|--------|---------------------|-------|
-| Low Volatility | Moderate positive | Trend following works |
-| Normal | Target returns | Optimal conditions |
-| High Volatility | Reduced exposure | Capital preservation mode |
-| Crisis | Near-flat or small positive | Hedging / minimal activity |
+| **Monthly Volatility** | 3-5% | Moderate risk profile |
 
 ## Risk Management
 
-### Multi-Layer Protection
+### Automated Protection
 
 ```mermaid
-flowchart TB
-    L1["Layer 1: Order Validation"] --> L2["Layer 2: Position Limits"]
-    L2 --> L3["Layer 3: Portfolio Risk"]
-    L3 --> L4["Layer 4: Circuit Breaker"]
-
-    L1 -.- D1["Price checks, size limits"]
-    L2 -.- D2["Max 25% single position"]
-    L3 -.- D3["VaR, CVaR monitoring"]
-    L4 -.- D4["1% daily stop - automatic halt"]
+flowchart LR
+    Trade["Trade Signal"] --> Risk["Risk Check"]
+    Risk --> Size["Position Sizing"]
+    Size --> Guardian["Circuit Breaker"]
+    Guardian --> Execute["Execute or Block"]
 ```
-
-### Key Risk Controls
 
 | Control | Threshold | Action |
 |---------|-----------|--------|
-| Daily Loss | 0.5% | Reduce position sizes 25% |
+| Daily Loss | 0.5% | Reduce position sizes |
 | Daily Loss | 0.75% | Close-only mode |
-| Daily Loss | 1.0% | **Automatic halt + closeout** |
-| Weekly Loss | 3.0% | No new positions |
-| Max Position | 25% NAV | Order rejected |
-| VaR (95%) | 1.5% daily | Position adjustment |
+| Daily Loss | 1.0% | **Automatic halt** |
+| Max Position | 25% equity | Order rejected |
 
-## Technology Infrastructure
+## Execution Infrastructure
 
-### Architecture Highlights
+### Brokers & Execution
 
-- **Dual-Region Deployment**: London + Manchester (AWS) for redundancy
-- **Execution Latency**: ~5-10ms to liquidity providers
-- **Uptime Target**: 99.99% (< 1 hour downtime/year)
-- **Automated Failover**: < 30 seconds recovery
+| Provider | Role |
+|----------|------|
+| **Tier 1 Liquidity** | Primary execution venue |
+| **OneEquity** | PAMM platform & execution |
 
-### Data Sources
+### Technology
 
-| Source | Purpose | Redundancy |
-|--------|---------|------------|
-| Bloomberg | Primary market data | Reuters backup |
-| LBMA | Gold price reference | Direct feeds |
-| News feeds | Event detection | Multiple sources |
-
-## Operational Structure
-
-### Service Providers
-
-| Function | Provider Type |
-|----------|--------------|
-| Prime Broker | Tier-1 institution |
-| Custodian | Independent third-party |
-| Administrator | Independent NAV calculation |
-| Auditor | Big-4 accounting firm |
-| Legal | Specialized fund counsel |
-
-### Key Personnel
-
-| Role | Responsibility |
-|------|----------------|
-| Portfolio Manager | Strategy oversight, risk decisions |
-| Chief Risk Officer | Independent risk monitoring |
-| Head of Technology | Infrastructure, execution systems |
-| Chief Compliance | Regulatory adherence |
+- **Dual-region deployment** (London + Manchester)
+- **~5-10ms execution latency**
+- **99.9% uptime target**
+- **Automated failover**
 
 ## Fee Structure
 
 | Fee Type | Rate |
 |----------|------|
-| Management Fee | 1.5% annually |
-| Performance Fee | 20% (high-water mark) |
-| Hurdle Rate | Risk-free rate |
+| Management Fee | None |
+| Performance Fee | 20-30% of profits (high-water mark) |
 
-## Investment Terms
+*Fees are automatically calculated and deducted by the PAMM system*
 
-| Term | Details |
-|------|---------|
-| Minimum Investment | $500,000 |
-| Lock-up Period | 12 months |
-| Redemption Notice | 30 days |
-| Redemption Frequency | Monthly |
-| NAV Calculation | Weekly |
+## Getting Started
+
+### Minimum Investment
+
+| Tier | Minimum | Performance Fee |
+|------|---------|-----------------|
+| Standard | $10,000 | 30% |
+| Premium | $50,000 | 25% |
+| VIP | $100,000+ | 20% |
+
+### How to Invest
+
+1. **Open account** at OneEquity (or supported broker)
+2. **Fund your account** via bank transfer or other methods
+3. **Connect to PAMM** using our master account ID
+4. **Monitor performance** through broker platform
+
+### Withdrawals
+
+- Process through your broker account directly
+- Typically T+1 to T+3 settlement
+- No lock-up period from our side
+- Broker terms apply
+
+## Important Notes
+
+**This is NOT a regulated investment fund.**
+
+- We are traders managing PAMM accounts, not a licensed fund
+- Your funds remain in your own broker account
+- No investor protection schemes apply
+- Past performance does not guarantee future results
+- You can lose your entire investment
 
 ## Contact
 
-For more information, please contact the investor relations team.
+For more information about joining the PAMM:
+- Telegram: [Contact]
+- Email: [Contact]
 
 ---
 
-*This document is for informational purposes only and does not constitute an offer to sell or solicitation of an offer to buy any securities. Past performance is not indicative of future results.*
+*Trading forex/CFDs carries high risk. Only invest what you can afford to lose.*

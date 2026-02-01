@@ -1,18 +1,62 @@
 # Important Disclaimers & Risk Factors
 
-## General Disclaimer
+## Critical Notice
 
-This document and all related materials are provided for informational purposes only and do not constitute an offer to sell, a solicitation of an offer to buy, or a recommendation for any security or investment product. Any investment decision should be made based solely on the official offering documents, including the Private Placement Memorandum (PPM), Limited Partnership Agreement (LPA), and related subscription documents.
+**BlackHole Fund is NOT a regulated investment fund.**
+
+We operate as traders managing PAMM (Percentage Allocation Management Module) accounts. By connecting to our PAMM, you are allowing trades from our master account to be copied proportionally to your own broker account.
+
+**You can lose your entire investment. Only invest what you can afford to lose.**
+
+## What This Is (and Isn't)
+
+### What We Are
+
+| Aspect | Reality |
+|--------|---------|
+| Structure | PAMM account management |
+| Your Funds | Held in YOUR broker account |
+| Our Access | Trade copying only - no withdrawal access |
+| Regulation | None - we are traders, not a regulated fund |
+| Guarantees | None |
+
+### What We Are NOT
+
+- NOT a registered investment fund
+- NOT a licensed investment adviser
+- NOT covered by investor protection schemes
+- NOT a custodian of your funds
+- NOT able to withdraw your money
 
 ## Risk Factors
+
+### PAMM-Specific Risks
+
+**No Regulatory Protection**
+- We are not registered with any financial regulator
+- No investor compensation schemes apply to our trading
+- No regulatory oversight of our activities
+- You have no recourse through financial ombudsman services
+
+**Broker Dependency**
+- Your funds are with your broker, not us
+- Broker solvency affects your funds
+- Broker terms govern withdrawals
+- Broker execution quality affects returns
+
+**Trade Copying Risks**
+- Trades may not copy perfectly
+- Latency between master and PAMM accounts
+- Slippage may differ from master account
+- Minimum lot sizes may affect smaller accounts differently
 
 ### Market Risks
 
 **Gold Price Volatility**
-The fund's strategy is focused on gold (XAU/USD), which can experience significant price volatility due to:
+Gold (XAU/USD) can experience significant price movements due to:
 - Central bank monetary policy decisions
-- Geopolitical events
-- Currency fluctuations
+- Geopolitical events and crises
+- Currency fluctuations (especially USD)
 - Changes in inflation expectations
 - Supply and demand dynamics
 
@@ -25,149 +69,162 @@ Trading in foreign exchange markets involves:
 - Spread widening during market stress
 
 **Liquidity Risk**
-While gold is generally liquid, extreme market conditions may result in:
+Extreme market conditions may result in:
 - Wider bid-ask spreads
-- Partial fills on large orders
+- Partial fills on orders
 - Delayed execution
-- Price gaps between trading sessions
+- Price gaps between sessions
 
 ### Strategy Risks
 
 **Model Risk**
-The fund relies on quantitative models that:
+Our quantitative models:
 - Are based on historical data that may not predict future behavior
-- May contain errors or bugs in implementation
-- Could experience regime changes rendering them ineffective
+- May contain errors in implementation
+- Could become ineffective during regime changes
 - May be correlated with other systematic strategies
 
 **Technology Risk**
 Automated trading systems are subject to:
-- Hardware failures
-- Software bugs
+- Hardware and software failures
 - Network connectivity issues
 - Data feed disruptions
 - Cybersecurity threats
 
 **Execution Risk**
-Actual trading may differ from model expectations due to:
+Actual trading may differ from expectations due to:
 - Slippage between signal and execution
-- Broker execution quality
+- Broker execution quality variations
 - Market impact of orders
 - System latency
 
 ### Operational Risks
 
 **Key Person Risk**
-The fund depends on key personnel for:
-- Strategy development and oversight
-- Risk management decisions
-- Technology maintenance
-- Operational management
+Our operation depends on:
+- Continued involvement of key traders
+- Ongoing system maintenance
+- Infrastructure reliability
 
-**Regulatory Risk**
-Changes in regulations may affect:
-- Trading strategies and instruments
-- Leverage limits
-- Reporting requirements
-- Tax treatment
-
-**Counterparty Risk**
-The fund faces exposure to:
-- Prime broker solvency
-- Executing broker reliability
-- Custodian safety
-- Banking relationships
+**No Business Continuity Guarantee**
+We may:
+- Cease operations at any time
+- Close the PAMM to new investors
+- Change strategy without notice
 
 ## Past Performance Disclaimer
 
 **PAST PERFORMANCE IS NOT INDICATIVE OF FUTURE RESULTS.**
 
-Any performance data presented:
-- Is based on historical simulations unless explicitly stated as live trading
-- Does not account for all fees and expenses
+Any performance data:
+- May be based on backtests or simulations
+- Does not guarantee future returns
 - May have been achieved under different market conditions
-- Cannot be guaranteed to repeat in the future
-- May be subject to survivorship bias in backtesting
+- Cannot be relied upon as prediction of future performance
 
-Simulated or hypothetical performance results have inherent limitations:
-- They are prepared with the benefit of hindsight
-- They do not reflect actual trading
-- They may not account for market impact
-- They assume perfect execution which is not realistic
+## Who Should NOT Invest
 
-## Investment Suitability
+Do NOT join this PAMM if you:
+- Cannot afford to lose your entire investment
+- Need capital preservation
+- Require regular income from your investment
+- Have short-term liquidity needs
+- Do not understand forex/CFD trading risks
+- Are looking for a regulated investment product
+- Cannot accept the possibility of significant losses
 
-This investment is suitable only for:
-- Sophisticated investors who understand the risks
-- Investors who can bear the loss of their entire investment
-- Investors with a long-term investment horizon
-- Investors who do not need immediate liquidity
+## Fee Disclosure
 
-This investment is NOT suitable for:
-- Investors who cannot afford to lose their investment
-- Investors seeking capital preservation
-- Investors requiring regular income
-- Investors with short-term liquidity needs
+| Fee Type | Rate |
+|----------|------|
+| Management Fee | None |
+| Performance Fee | 20-30% of profits |
 
-## Regulatory Status
+- Performance fees are calculated using high-water mark
+- Fees are automatically deducted by the PAMM platform
+- You only pay fees on profits, not losses
 
-**Not Regulated as a Retail Product**
-This fund:
-- Is not registered under the Investment Company Act of 1940
-- Is not registered under the Securities Act of 1933
-- Is offered only to qualified purchasers/accredited investors
-- Is not subject to the same regulatory protections as retail funds
-
-**Jurisdictional Limitations**
-This offering:
-- Is not available in all jurisdictions
-- May be restricted in certain countries
-- Requires compliance with local regulations
-- May have different tax treatment by jurisdiction
-
-## Conflicts of Interest
-
-Potential conflicts include:
-- Performance fees may incentivize higher risk-taking
-- The manager may trade similar strategies in other vehicles
-- Service providers may have relationships with multiple parties
-- Soft dollar arrangements may exist
-
-## No Guarantee of Returns
+## No Guarantees
 
 **There is no guarantee that:**
-- The fund will achieve its investment objectives
 - Any profit will be generated
 - Capital will be preserved
 - The strategy will perform as expected
+- We will continue operating
+- Past performance will repeat
 
-**Investors may lose their entire investment.**
+**You may lose your entire investment.**
 
-## Forward-Looking Statements
+## Your Responsibilities
 
-Any statements regarding future expectations, projections, or targets:
-- Are based on current assumptions and beliefs
-- Are subject to significant uncertainty
-- May not be achieved
-- Should not be relied upon as promises or guarantees
+By joining our PAMM, you confirm:
 
-## Updates and Changes
+1. **Understanding of Risks**
+   - You have read and understood these disclaimers
+   - You understand forex/CFD trading risks
+   - You accept the possibility of total loss
 
-- This document may be updated from time to time
-- The fund reserves the right to modify its strategy
-- Terms and conditions are subject to change
-- Investors will be notified of material changes
+2. **Financial Suitability**
+   - You can afford to lose the entire amount invested
+   - This is risk capital, not essential savings
+   - You have other financial resources
+
+3. **Due Diligence**
+   - You have researched the broker's regulatory status
+   - You understand the PAMM mechanism
+   - You have sought independent advice if needed
+
+4. **Legal Compliance**
+   - You are legally permitted to trade forex in your jurisdiction
+   - You will comply with local tax laws
+   - You meet the broker's eligibility requirements
+
+## Tax Considerations
+
+- Tax treatment varies by jurisdiction
+- You are responsible for your own tax reporting
+- Consult a tax professional for guidance
+- We do not provide tax advice
+
+## Changes and Termination
+
+We reserve the right to:
+- Modify trading strategy at any time
+- Close the PAMM to new investors
+- Terminate the PAMM entirely
+- Change fee structures (with notice)
+
+## No Advisory Relationship
+
+This documentation:
+- Is for informational purposes only
+- Does not constitute investment advice
+- Does not create a fiduciary relationship
+- Should not be the sole basis for investment decisions
 
 ## Professional Advice
 
-Prospective investors should:
-- Consult their own legal, tax, and financial advisors
-- Review all offering documents carefully
-- Understand all risk factors before investing
-- Not rely solely on this document for investment decisions
+Before investing, you should:
+- Consult independent financial advisors
+- Understand the broker's terms and conditions
+- Research the broker's regulatory status
+- Ensure forex trading is legal in your jurisdiction
 
 ---
 
-**By accessing this documentation, you acknowledge that you have read and understood these disclaimers.**
+## Acknowledgment
+
+**By connecting to our PAMM, you acknowledge that:**
+
+1. You have read and understood all disclaimers
+2. You understand this is NOT a regulated fund
+3. You accept all risks described herein
+4. You can afford to lose your entire investment
+5. You have not relied on any guarantees or promises
+6. You understand past performance does not predict future results
+
+---
+
+*Trading forex/CFDs carries substantial risk of loss. Only trade with money you can afford to lose.*
 
 *Last Updated: 2024*
