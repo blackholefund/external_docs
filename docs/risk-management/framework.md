@@ -6,70 +6,53 @@ BlackHole Fund employs a comprehensive, multi-layered risk management framework 
 
 ## Risk Philosophy
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                         RISK MANAGEMENT PRINCIPLES                              │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│   1. CAPITAL PRESERVATION FIRST                                                │
-│      The primary objective is protecting capital. Returns are secondary        │
-│      to survival.                                                               │
-│                                                                                 │
-│   2. MULTIPLE INDEPENDENT SAFEGUARDS                                           │
-│      No single point of failure. Risk controls operate at multiple levels     │
-│      with independent systems.                                                  │
-│                                                                                 │
-│   3. HARD LIMITS ARE ABSOLUTE                                                  │
-│      Circuit breakers cannot be overridden during market hours. Period.        │
-│                                                                                 │
-│   4. ADAPT TO REGIME                                                           │
-│      Risk parameters dynamically adjust based on market conditions.            │
-│                                                                                 │
-│   5. TRANSPARENCY AND AUDITABILITY                                             │
-│      Every risk decision is logged and auditable.                              │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+### Core Principles
+
+1. **Capital Preservation First** - The primary objective is protecting capital. Returns are secondary to survival.
+
+2. **Multiple Independent Safeguards** - No single point of failure. Risk controls operate at multiple levels with independent systems.
+
+3. **Hard Limits Are Absolute** - Circuit breakers cannot be overridden during market hours. Period.
+
+4. **Adapt to Regime** - Risk parameters dynamically adjust based on market conditions.
+
+5. **Transparency and Auditability** - Every risk decision is logged and auditable.
 
 ## Risk Control Hierarchy
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                         FOUR LINES OF DEFENSE                                   │
-└─────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Level1["LEVEL 1: ORDER-LEVEL CONTROLS"]
+        O1["Volume limits per order"]
+        O2["Price sanity checks"]
+        O3["Symbol validation"]
+        O4["Duplicate detection"]
+    end
 
-LEVEL 1: ORDER-LEVEL CONTROLS
-├── Volume limits per order
-├── Price sanity checks
-├── Symbol validation
-└── Duplicate detection
+    subgraph Level2["LEVEL 2: POSITION-LEVEL CONTROLS (bh-risk)"]
+        P1["Position sizing based on volatility"]
+        P2["Single position exposure limits"]
+        P3["Correlated exposure limits"]
+        P4["VaR contribution limits"]
+    end
 
-         │
-         ▼
+    subgraph Level3["LEVEL 3: PORTFOLIO-LEVEL CONTROLS (bh-risk)"]
+        Po1["Gross exposure limits"]
+        Po2["Net exposure limits"]
+        Po3["Sector concentration limits"]
+        Po4["Drawdown monitoring"]
+    end
 
-LEVEL 2: POSITION-LEVEL CONTROLS (bh-risk)
-├── Position sizing based on volatility
-├── Single position exposure limits
-├── Correlated exposure limits
-└── VaR contribution limits
+    subgraph Level4["LEVEL 4: SYSTEM-LEVEL CONTROLS (bh-guardian)"]
+        S1["Daily loss limit (1%)"]
+        S2["Emergency halt capability"]
+        S3["Automatic position closeout"]
+        S4["Manual override (authorized only)"]
+    end
 
-         │
-         ▼
-
-LEVEL 3: PORTFOLIO-LEVEL CONTROLS (bh-risk)
-├── Gross exposure limits
-├── Net exposure limits
-├── Sector concentration limits
-└── Drawdown monitoring
-
-         │
-         ▼
-
-LEVEL 4: SYSTEM-LEVEL CONTROLS (bh-guardian)
-├── Daily loss limit (1%)
-├── Emergency halt capability
-├── Automatic position closeout
-└── Manual override (authorized only)
+    Level1 --> Level2
+    Level2 --> Level3
+    Level3 --> Level4
 ```
 
 ## Quantitative Risk Metrics
@@ -107,40 +90,32 @@ CVaR is used for:
 
 ### Drawdown Limits
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                         DRAWDOWN CONTROL FRAMEWORK                              │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│   DAILY DRAWDOWN                                                               │
-│   ═══════════════                                                              │
-│   0.00% ────────────────────────────────────────────────────── 0% (Start)     │
-│          │                                                                      │
-│   0.50% ─┼───────────────────────────────── WARNING (Position size -25%)      │
-│          │                                                                      │
-│   0.75% ─┼─────────────────────── ALERT (No new positions, reduce exposure)   │
-│          │                                                                      │
-│   1.00% ─┼─────────── HALT (Circuit breaker - close all positions)            │
-│          │                                                                      │
-│          ▼                                                                      │
-│                                                                                 │
-│   WEEKLY DRAWDOWN                                                              │
-│   ════════════════                                                             │
-│   2.0%  → Warning level                                                        │
-│   3.0%  → No new positions                                                     │
-│   4.0%  → Strategy review required                                             │
-│                                                                                 │
-│   MONTHLY DRAWDOWN                                                             │
-│   ═════════════════                                                            │
-│   5.0%  → Warning level                                                        │
-│   8.0%  → Formal review required                                               │
-│                                                                                 │
-│   PEAK-TO-TROUGH (Any Period)                                                  │
-│   ════════════════════════════                                                 │
-│   10.0% → Mandatory strategy review                                            │
-│   15.0% → Trading suspension pending review                                    │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Daily["DAILY DRAWDOWN"]
+        D0["0.00% - Start"]
+        D1["0.50% - WARNING\n(Position size -25%)"]
+        D2["0.75% - ALERT\n(No new positions)"]
+        D3["1.00% - HALT\n(Circuit breaker)"]
+    end
+
+    subgraph Weekly["WEEKLY DRAWDOWN"]
+        W1["2.0% - Warning"]
+        W2["3.0% - No new positions"]
+        W3["4.0% - Review required"]
+    end
+
+    subgraph Monthly["MONTHLY DRAWDOWN"]
+        M1["5.0% - Warning"]
+        M2["8.0% - Formal review"]
+    end
+
+    subgraph Peak["PEAK-TO-TROUGH"]
+        PT1["10.0% - Mandatory review"]
+        PT2["15.0% - Trading suspension"]
+    end
+
+    D0 --> D1 --> D2 --> D3
 ```
 
 ## Position Sizing
@@ -149,7 +124,9 @@ CVaR is used for:
 
 Position size is inversely proportional to current volatility:
 
-$$\text{Position Size} = \frac{\text{Risk Budget} \times \text{Account Equity}}{\text{ATR} \times \text{ATR Multiplier}}$$
+```
+Position Size = (Risk Budget × Account Equity) / (ATR × ATR Multiplier)
+```
 
 **Parameters**:
 - Risk Budget: 1% of equity per trade (max)
@@ -160,12 +137,14 @@ $$\text{Position Size} = \frac{\text{Risk Budget} \times \text{Account Equity}}{
 
 Optimal sizing based on edge and win rate:
 
-$$f^* = \frac{p \cdot b - q}{b}$$
+```
+f* = (p × b - q) / b
+```
 
 Where:
-- $p$ = Win probability
-- $q$ = Loss probability (1-p)
-- $b$ = Win/Loss ratio
+- p = Win probability
+- q = Loss probability (1-p)
+- b = Win/Loss ratio
 
 **Implementation**: Fractional Kelly (0.25x) for variance reduction
 
@@ -230,46 +209,66 @@ Where:
 
 The circuit breaker (bh-guardian) operates independently of all other systems:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                         CIRCUIT BREAKER LOGIC                                   │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│   INPUTS:                                                                       │
-│   ├── Real-time position values                                                │
-│   ├── Current market prices (from mt5_tick)                                    │
-│   ├── Day-start equity (locked at market open)                                 │
-│   └── Realized P&L (from execution reports)                                    │
-│                                                                                 │
-│   CALCULATION (Every 100ms):                                                   │
-│   ├── Unrealized P&L = Σ(position_value - entry_value)                        │
-│   ├── Total P&L = Realized P&L + Unrealized P&L                               │
-│   └── Drawdown % = -Total P&L / Day-Start Equity × 100                        │
-│                                                                                 │
-│   ACTIONS:                                                                      │
-│   ├── DD ≥ 0.5%:  Set state = REDUCED (position sizes halved)                 │
-│   ├── DD ≥ 0.75%: Set state = CLOSING (close-only mode)                       │
-│   └── DD ≥ 1.0%:  Set state = HALTED (emergency closeout)                     │
-│                                                                                 │
-│   RECOVERY:                                                                     │
-│   ├── Automatic reset at day start (00:00 UTC)                                │
-│   ├── Manual unlock requires: 30-min cooldown + authorized operator            │
-│   └── All unlocks logged with full audit trail                                 │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Inputs["INPUTS"]
+        I1["Real-time position values"]
+        I2["Current market prices"]
+        I3["Day-start equity"]
+        I4["Realized P&L"]
+    end
+
+    subgraph Calculation["CALCULATION (Every 100ms)"]
+        C1["Unrealized P&L = Σ(position_value - entry_value)"]
+        C2["Total P&L = Realized + Unrealized"]
+        C3["Drawdown % = -Total P&L / Day-Start Equity × 100"]
+    end
+
+    subgraph Actions["ACTIONS"]
+        A1["DD ≥ 0.5%: REDUCED\n(position sizes halved)"]
+        A2["DD ≥ 0.75%: CLOSING\n(close-only mode)"]
+        A3["DD ≥ 1.0%: HALTED\n(emergency closeout)"]
+    end
+
+    subgraph Recovery["RECOVERY"]
+        R1["Auto reset at 00:00 UTC"]
+        R2["Manual unlock: 30-min cooldown"]
+        R3["Full audit trail"]
+    end
+
+    Inputs --> Calculation
+    Calculation --> Actions
+    Actions --> Recovery
 ```
 
 ### Emergency Closeout Procedure
 
-When 1% daily loss is reached:
+```mermaid
+sequenceDiagram
+    participant Guardian as bh-guardian
+    participant Core as bh-core
+    participant Executor as mt5_executor
+    participant Broker as MT5 Broker
 
-1. **Immediate**: All pending orders cancelled
-2. **T+0s**: State set to HALTED
-3. **T+0s**: Alert sent to all channels (PagerDuty, Slack, SMS)
-4. **T+1s**: Begin market order closeout of all positions
-5. **T+5s**: Verify all positions closed
-6. **T+10s**: Final P&L reconciliation
-7. **T+30min**: Earliest possible manual unlock
+    Note over Guardian: Daily Loss ≥ 1%
+    Guardian->>Core: HALT Signal
+    Core->>Executor: Cancel All Pending
+    Guardian->>Guardian: Set State = HALTED
+    Guardian->>Guardian: Send Alerts (PagerDuty, Slack)
+    Core->>Executor: Market Close All Positions
+    Executor->>Broker: Close Orders
+    Broker-->>Executor: Confirmations
+    Executor-->>Core: All Closed
+    Note over Guardian: 30-min cooldown starts
+```
+
+Timeline:
+- **T+0s**: All pending orders cancelled, state set to HALTED
+- **T+0s**: Alert sent to all channels
+- **T+1s**: Begin market order closeout
+- **T+5s**: Verify all positions closed
+- **T+10s**: Final P&L reconciliation
+- **T+30min**: Earliest possible manual unlock
 
 ## Operational Risk Controls
 
@@ -277,7 +276,7 @@ When 1% daily loss is reached:
 
 | Component | Primary | Backup | Failover Time |
 |-----------|---------|--------|---------------|
-| Execution | mt5_executor (LD4) | mt5_executor (LD5) | < 5s |
+| Execution | mt5_executor (Primary) | mt5_executor (DR) | < 5s |
 | Risk Engine | bh-risk (eu-west-2a) | bh-risk (eu-west-2b) | < 10s |
 | Circuit Breaker | bh-guardian (eu-west-2a) | bh-guardian (eu-west-2b) | < 5s |
 | Market Data | Bloomberg | Reuters | < 5s |
@@ -298,31 +297,25 @@ If any critical system becomes unavailable:
 
 ### Real-Time Dashboard
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                         RISK MONITORING DASHBOARD                               │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│   CURRENT STATUS: ████ ACTIVE                                                  │
-│                                                                                 │
-│   Daily P&L:        +$12,450  (+0.25%)    ██████████░░░░░░░░░░  25% of limit  │
-│   Daily Drawdown:   -0.15%                ███░░░░░░░░░░░░░░░░░  15% of limit  │
-│   VaR (95%):        $45,000   (0.90%)     █████████░░░░░░░░░░░  60% of limit  │
-│   CVaR (95%):       $62,000   (1.24%)     ████████████░░░░░░░░  69% of limit  │
-│                                                                                 │
-│   POSITIONS                                                                     │
-│   ───────────────────────────────────────────────────────────────────────────  │
-│   XAUUSD Long    2.5 lots    Entry: 2032.50    Current: 2035.00    +$6,250    │
-│   XAUUSD Short   1.0 lots    Entry: 2038.00    Current: 2035.00    +$3,000    │
-│                                                                                 │
-│   EXPOSURE                                                                      │
-│   ───────────────────────────────────────────────────────────────────────────  │
-│   Gross: $875,000 (17.5% NAV)                                                  │
-│   Net:   $375,000 (7.5% NAV)                                                   │
-│                                                                                 │
-│   ALERTS: None                                                                  │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Status["CURRENT STATUS"]
+        Active["ACTIVE"]
+    end
+
+    subgraph Metrics["KEY METRICS"]
+        PnL["Daily P&L: +0.25%"]
+        DD["Drawdown: -0.15%"]
+        VaR["VaR 95%: 0.90%"]
+        CVaR["CVaR 95%: 1.24%"]
+    end
+
+    subgraph Exposure["EXPOSURE"]
+        Gross["Gross: 17.5% NAV"]
+        Net["Net: 7.5% NAV"]
+    end
+
+    Status --> Metrics --> Exposure
 ```
 
 ### Reporting Schedule

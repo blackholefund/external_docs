@@ -15,66 +15,66 @@
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                                    bh-core                                              │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                         │
-│   ┌─────────────────────────────────────────────────────────────────────────────────┐  │
-│   │                          API Gateway Layer                                      │  │
-│   │                                                                                 │  │
-│   │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐                │  │
-│   │  │   gRPC Server   │  │   REST API      │  │   WebSocket     │                │  │
-│   │  │   (Internal)    │  │   (Admin)       │  │   (Events)      │                │  │
-│   │  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘                │  │
-│   │           │                    │                    │                          │  │
-│   └───────────┼────────────────────┼────────────────────┼──────────────────────────┘  │
-│               │                    │                    │                              │
-│               └────────────────────┴────────────────────┘                              │
-│                                    │                                                    │
-│                                    ▼                                                    │
-│   ┌─────────────────────────────────────────────────────────────────────────────────┐  │
-│   │                          Core Services                                          │  │
-│   │                                                                                 │  │
-│   │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐             │  │
-│   │  │  Order Manager   │  │  Signal Router   │  │  Strategy Mgr    │             │  │
-│   │  │                  │  │                  │  │                  │             │  │
-│   │  │  - Order queue   │  │  - Signal intake │  │  - Strategy reg  │             │  │
-│   │  │  - State machine │  │  - Distribution  │  │  - Lifecycle     │             │  │
-│   │  │  - Reconciliation│  │  - Filtering     │  │  - Allocation    │             │  │
-│   │  └──────────────────┘  └──────────────────┘  └──────────────────┘             │  │
-│   │                                                                                 │  │
-│   │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐             │  │
-│   │  │  Service Mesh    │  │  Config Manager  │  │  Health Monitor  │             │  │
-│   │  │                  │  │                  │  │                  │             │  │
-│   │  │  - Discovery     │  │  - Dynamic conf  │  │  - Service health│             │  │
-│   │  │  - Load balance  │  │  - Versioning    │  │  - Alerts        │             │  │
-│   │  │  - Circuit break │  │  - Distribution  │  │  - Auto-recovery │             │  │
-│   │  └──────────────────┘  └──────────────────┘  └──────────────────┘             │  │
-│   │                                                                                 │  │
-│   └─────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                         │
-│   ┌─────────────────────────────────────────────────────────────────────────────────┐  │
-│   │                          Integration Layer                                      │  │
-│   │                                                                                 │  │
-│   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐           │  │
-│   │  │  bh-risk    │  │ bh-guardian │  │ bh-quant    │  │ mt5_executor│           │  │
-│   │  │  Client     │  │  Client     │  │  Client     │  │  Client     │           │  │
-│   │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘           │  │
-│   │                                                                                 │  │
-│   └─────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                         │
-│   ┌─────────────────────────────────────────────────────────────────────────────────┐  │
-│   │                          Persistence Layer                                      │  │
-│   │                                                                                 │  │
-│   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐           │  │
-│   │  │  PostgreSQL │  │   Redis     │  │   Kafka     │  │  InfluxDB   │           │  │
-│   │  │  (State)    │  │  (Cache)    │  │  (Events)   │  │  (Metrics)  │           │  │
-│   │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘           │  │
-│   │                                                                                 │  │
-│   └─────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                         │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph bhCore["bh-core"]
+        subgraph api["API Gateway Layer"]
+            gRPCServer["gRPC Server (Internal)"]
+            RESTAPI["REST API (Admin)"]
+            WebSocket["WebSocket (Events)"]
+        end
+
+        subgraph services["Core Services"]
+            subgraph orderMgr["Order Manager"]
+                orderQueue["Order queue"]
+                stateMachine["State machine"]
+                reconciliation["Reconciliation"]
+            end
+            subgraph signalRouter["Signal Router"]
+                signalIntake["Signal intake"]
+                distribution["Distribution"]
+                filtering["Filtering"]
+            end
+            subgraph strategyMgr["Strategy Mgr"]
+                strategyReg["Strategy reg"]
+                lifecycle["Lifecycle"]
+                allocation["Allocation"]
+            end
+            subgraph serviceMesh["Service Mesh"]
+                discovery["Discovery"]
+                loadBalance["Load balance"]
+                circuitBreak["Circuit break"]
+            end
+            subgraph configMgr["Config Manager"]
+                dynamicConf["Dynamic conf"]
+                versioning["Versioning"]
+                configDist["Distribution"]
+            end
+            subgraph healthMon["Health Monitor"]
+                serviceHealth["Service health"]
+                alerts["Alerts"]
+                autoRecovery["Auto-recovery"]
+            end
+        end
+
+        subgraph integration["Integration Layer"]
+            bhRiskClient["bh-risk Client"]
+            bhGuardianClient["bh-guardian Client"]
+            bhQuantClient["bh-quant Client"]
+            mt5ExecutorClient["mt5_executor Client"]
+        end
+
+        subgraph persistence["Persistence Layer"]
+            PostgreSQL["PostgreSQL (State)"]
+            Redis["Redis (Cache)"]
+            Kafka["Kafka (Events)"]
+            InfluxDB["InfluxDB (Metrics)"]
+        end
+
+        api --> services
+        services --> integration
+        services --> persistence
+    end
 ```
 
 ## Core Components
@@ -83,41 +83,23 @@
 
 Central order management with full lifecycle tracking.
 
-```
-Order State Machine:
-
-    ┌─────────────────────────────────────────────────────────────┐
-    │                                                             │
-    │   ┌──────────┐         ┌──────────┐         ┌──────────┐  │
-    │   │  PENDING │────────►│VALIDATING│────────►│  RISK    │  │
-    │   │          │         │          │         │  CHECK   │  │
-    │   └──────────┘         └──────────┘         └────┬─────┘  │
-    │                                                   │        │
-    │              ┌────────────────────────────────────┤        │
-    │              │                                    │        │
-    │              ▼                                    ▼        │
-    │        ┌──────────┐                        ┌──────────┐   │
-    │        │ REJECTED │                        │  QUEUED  │   │
-    │        │          │                        │          │   │
-    │        └──────────┘                        └────┬─────┘   │
-    │                                                 │         │
-    │              ┌──────────────────────────────────┤         │
-    │              │                                  │         │
-    │              ▼                                  ▼         │
-    │        ┌──────────┐                      ┌──────────┐    │
-    │        │ CANCELLED│                      │ EXECUTING│    │
-    │        │          │                      │          │    │
-    │        └──────────┘                      └────┬─────┘    │
-    │                                               │          │
-    │              ┌────────────────┬───────────────┤          │
-    │              │                │               │          │
-    │              ▼                ▼               ▼          │
-    │        ┌──────────┐    ┌──────────┐    ┌──────────┐     │
-    │        │  FILLED  │    │ PARTIAL  │    │  FAILED  │     │
-    │        │          │    │          │    │          │     │
-    │        └──────────┘    └──────────┘    └──────────┘     │
-    │                                                          │
-    └──────────────────────────────────────────────────────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING
+    PENDING --> VALIDATING
+    VALIDATING --> RISK_CHECK
+    RISK_CHECK --> REJECTED
+    RISK_CHECK --> QUEUED
+    QUEUED --> CANCELLED
+    QUEUED --> EXECUTING
+    EXECUTING --> FILLED
+    EXECUTING --> PARTIAL
+    EXECUTING --> FAILED
+    FILLED --> [*]
+    PARTIAL --> [*]
+    FAILED --> [*]
+    REJECTED --> [*]
+    CANCELLED --> [*]
 ```
 
 ### 2. Signal Router
@@ -215,68 +197,19 @@ strategies:
 
 ## Trading Workflow
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                           Complete Order Flow                                           │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    step1["[1] Signal Generation<br/>bh-quant-engine publishes signal to Redis"]
+    step2["[2] Signal Intake (bh-core)<br/>SignalRouter receives and validates signal"]
+    step3["[3] Guardian Check<br/>bh-core → bh-guardian: CheckTradingStatus()<br/>Response: {trading_allowed: true, state: ACTIVE}"]
+    step4["[4] Risk Evaluation<br/>bh-core → bh-risk: EvaluateOrder()<br/>Response: {approved: true, adjusted_volume: 0.5, max_loss: $500}"]
+    step5["[5] Order Creation<br/>OrderManager creates order record<br/>State: PENDING → VALIDATING → RISK_CHECK → QUEUED"]
+    step6["[6] Final Guardian Gate<br/>bh-core → bh-guardian: CheckOrder()<br/>Response: {allowed: true}"]
+    step7["[7] Execution<br/>bh-core → mt5_executor: ExecuteOrder()<br/>State: QUEUED → EXECUTING<br/>Response: {status: SUCCESS, filled_price: 2035.50, filled_volume: 0.5}"]
+    step8["[8] Confirmation<br/>OrderManager updates state: EXECUTING → FILLED<br/>Publishes execution event to Kafka<br/>Updates positions in Redis"]
+    step9["[9] Post-Trade<br/>bh-risk receives position update<br/>bh-guardian updates PnL tracker<br/>Analytics records trade"]
 
-[1] Signal Generation
-    │
-    │  bh-quant-engine publishes signal to Redis
-    │
-    ▼
-[2] Signal Intake (bh-core)
-    │
-    │  SignalRouter receives and validates signal
-    │
-    ▼
-[3] Guardian Check
-    │
-    │  bh-core → bh-guardian: CheckTradingStatus()
-    │
-    │  Response: {trading_allowed: true, state: ACTIVE}
-    │
-    ▼
-[4] Risk Evaluation
-    │
-    │  bh-core → bh-risk: EvaluateOrder()
-    │
-    │  Response: {approved: true, adjusted_volume: 0.5, max_loss: $500}
-    │
-    ▼
-[5] Order Creation
-    │
-    │  OrderManager creates order record
-    │  State: PENDING → VALIDATING → RISK_CHECK → QUEUED
-    │
-    ▼
-[6] Final Guardian Gate
-    │
-    │  bh-core → bh-guardian: CheckOrder()
-    │
-    │  Response: {allowed: true}
-    │
-    ▼
-[7] Execution
-    │
-    │  bh-core → mt5_executor: ExecuteOrder()
-    │  State: QUEUED → EXECUTING
-    │
-    │  Response: {status: SUCCESS, filled_price: 2035.50, filled_volume: 0.5}
-    │
-    ▼
-[8] Confirmation
-    │
-    │  OrderManager updates state: EXECUTING → FILLED
-    │  Publishes execution event to Kafka
-    │  Updates positions in Redis
-    │
-    ▼
-[9] Post-Trade
-    │
-    │  bh-risk receives position update
-    │  bh-guardian updates PnL tracker
-    │  Analytics records trade
+    step1 --> step2 --> step3 --> step4 --> step5 --> step6 --> step7 --> step8 --> step9
 ```
 
 ## API Reference
@@ -399,37 +332,19 @@ monitoring:
 
 ## High Availability
 
+```mermaid
+flowchart TD
+    LB["Load Balancer (AWS ALB)"]
+    LB --> CoreA["bh-core (AZ-a)"]
+    LB --> CoreB["bh-core (AZ-b)"]
+    LB --> CoreC["bh-core (AZ-c)"]
+    CoreA --> Redis["Redis Cluster (Shared State)"]
+    CoreB --> Redis
+    CoreC --> Redis
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    bh-core HA Architecture                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│                     ┌─────────────────┐                        │
-│                     │   Load Balancer │                        │
-│                     │    (AWS ALB)    │                        │
-│                     └────────┬────────┘                        │
-│                              │                                  │
-│            ┌─────────────────┼─────────────────┐               │
-│            │                 │                 │               │
-│            ▼                 ▼                 ▼               │
-│     ┌──────────┐      ┌──────────┐      ┌──────────┐         │
-│     │ bh-core  │      │ bh-core  │      │ bh-core  │         │
-│     │  (AZ-a)  │      │  (AZ-b)  │      │  (AZ-c)  │         │
-│     └────┬─────┘      └────┬─────┘      └────┬─────┘         │
-│          │                 │                 │                │
-│          └─────────────────┼─────────────────┘                │
-│                            │                                   │
-│                            ▼                                   │
-│                  ┌─────────────────┐                          │
-│                  │  Redis Cluster  │                          │
-│                  │ (Shared State)  │                          │
-│                  └─────────────────┘                          │
-│                                                                │
-│   Leader Election: Consul-based distributed lock              │
-│   Failover Time: < 5 seconds                                  │
-│                                                                │
-└─────────────────────────────────────────────────────────────────┘
-```
+
+- Leader Election: Consul-based distributed lock
+- Failover Time: < 5 seconds
 
 ### Leader Election
 

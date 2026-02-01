@@ -12,35 +12,23 @@
 | **Build System** | CMake 3.25+ |
 | **Compiler** | GCC 13+ / Clang 17+ |
 | **Dependencies** | ZeroMQ, Boost, MT5 API SDK |
-| **Target Latency** | < 500μs order submission |
+| **Target Latency** | < 5ms order submission |
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        mt5_executor                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│   ┌─────────────────┐    ┌─────────────────┐                   │
-│   │  ZMQ Receiver   │    │  Order Queue    │                   │
-│   │  (REP Socket)   │───►│  (Lock-free)    │                   │
-│   └─────────────────┘    └────────┬────────┘                   │
-│                                   │                             │
-│                                   ▼                             │
-│   ┌─────────────────────────────────────────────────────────┐  │
-│   │                    Order Processor                       │  │
-│   │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐    │  │
-│   │  │Validate │─►│ Route   │─►│ Execute │─►│ Report  │    │  │
-│   │  └─────────┘  └─────────┘  └─────────┘  └─────────┘    │  │
-│   └─────────────────────────────────────────────────────────┘  │
-│                                   │                             │
-│                                   ▼                             │
-│   ┌─────────────────┐    ┌─────────────────┐                   │
-│   │  MT5 Manager    │    │  Execution      │                   │
-│   │  API Client     │───►│  Reporter       │                   │
-│   └─────────────────┘    └─────────────────┘                   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph mt5Executor["mt5_executor"]
+        ZMQReceiver["ZMQ Receiver (REP Socket)"] --> OrderQueue["Order Queue (Lock-free)"]
+
+        subgraph processor["Order Processor"]
+            Validate["Validate"] --> Route["Route"] --> Execute["Execute"] --> Report["Report"]
+        end
+
+        OrderQueue --> processor
+        processor --> MT5Manager["MT5 Manager API Client"]
+        MT5Manager --> ExecReporter["Execution Reporter"]
+    end
 ```
 
 ## Core Components
@@ -141,7 +129,7 @@ monitoring:
 
 | Metric | Target | Typical |
 |--------|--------|---------|
-| Order submission latency | < 500μs | 200-400μs |
+| Order submission latency | < 5ms | 2-4ms |
 | Throughput | > 10,000 orders/sec | 15,000 orders/sec |
 | Memory footprint | < 256MB | 128MB |
 | CPU usage (idle) | < 5% | 2% |
@@ -211,21 +199,14 @@ mt5_executor_cpu_seconds_total
 
 mt5_executor is deployed in colocation facilities (Equinix LD4/LD5) for minimal latency to broker infrastructure:
 
-```
-┌─────────────────────────────────────────┐
-│         Equinix LD4 Colocation          │
-│                                         │
-│  ┌─────────────────┐                    │
-│  │  mt5_executor   │◄───── Cross-connect ─────► Broker Infrastructure
-│  │  (Primary)      │                    │
-│  └─────────────────┘                    │
-│                                         │
-│  ┌─────────────────┐                    │
-│  │  mt5_executor   │◄───── Cross-connect ─────► Backup Broker
-│  │  (Backup)       │                    │
-│  └─────────────────┘                    │
-│                                         │
-└─────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph equinix["Equinix LD4 Colocation"]
+        Primary["mt5_executor (Primary)"]
+        Backup["mt5_executor (Backup)"]
+    end
+    Primary <-->|Cross-connect| Broker["Broker Infrastructure"]
+    Backup <-->|Cross-connect| BackupBroker["Backup Broker"]
 ```
 
 ## Security

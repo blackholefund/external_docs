@@ -6,33 +6,37 @@ BlackHole Fund's market connectivity infrastructure provides access to real-time
 
 ## Data Provider Ecosystem
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                              DATA PROVIDER LANDSCAPE                                    │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                         │
-│                              ┌─────────────────────┐                                   │
-│                              │   bh-market-gateway │                                   │
-│                              │     (Aggregator)    │                                   │
-│                              └──────────┬──────────┘                                   │
-│                                         │                                               │
-│         ┌───────────────────────────────┼───────────────────────────────┐              │
-│         │                               │                               │              │
-│         ▼                               ▼                               ▼              │
-│  ┌─────────────────┐           ┌─────────────────┐           ┌─────────────────┐      │
-│  │   MARKET DATA   │           │     NEWS &      │           │   ECONOMIC      │      │
-│  │   PROVIDERS     │           │    SENTIMENT    │           │   DATA          │      │
-│  └────────┬────────┘           └────────┬────────┘           └────────┬────────┘      │
-│           │                             │                             │               │
-│  ┌────────┴────────┐           ┌────────┴────────┐           ┌────────┴────────┐      │
-│  │ • Bloomberg     │           │ • Bloomberg News│           │ • Economic Cal  │      │
-│  │ • Reuters       │           │ • Reuters News  │           │ • Fed Data      │      │
-│  │ • LBMA          │           │ • Dow Jones     │           │ • BLS Data      │      │
-│  │ • COMEX         │           │ • Social Sent.  │           │ • Treasury      │      │
-│  │ • ICE           │           │                 │           │                 │      │
-│  └─────────────────┘           └─────────────────┘           └─────────────────┘      │
-│                                                                                         │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Gateway["bh-market-gateway (Aggregator)"]
+        Agg["Data Aggregator"]
+    end
+
+    subgraph MarketData["MARKET DATA PROVIDERS"]
+        Bloomberg["Bloomberg"]
+        Reuters["Reuters"]
+        LBMA["LBMA"]
+        COMEX["COMEX"]
+        ICE["ICE"]
+    end
+
+    subgraph News["NEWS & SENTIMENT"]
+        BBNews["Bloomberg News"]
+        ReutersNews["Reuters News"]
+        DowJones["Dow Jones"]
+        Social["Social Sentiment"]
+    end
+
+    subgraph Economic["ECONOMIC DATA"]
+        EconCal["Economic Calendar"]
+        FedData["Fed Data"]
+        BLS["BLS Data"]
+        Treasury["Treasury"]
+    end
+
+    MarketData --> Gateway
+    News --> Gateway
+    Economic --> Gateway
 ```
 
 ## Primary Data Sources
@@ -94,8 +98,8 @@ BlackHole Fund's market connectivity infrastructure provides access to real-time
 
 **Connection**:
 - Protocol: FIX 4.4 / CME Market Data
-- Location: Chicago (co-located)
-- Latency: < 1ms
+- Location: Near liquidity provider
+- Latency: < 5ms
 
 ### ICE (Intercontinental Exchange)
 
@@ -178,39 +182,34 @@ BlackHole Fund's market connectivity infrastructure provides access to real-time
 
 ## Data Flow Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                              DATA INGESTION FLOW                                        │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                         │
-│   EXTERNAL SOURCES                                                                      │
-│   ════════════════                                                                      │
-│                                                                                         │
-│   Bloomberg ─────┐                                                                      │
-│   Reuters ───────┼───► Raw Data ───► Normalization ───► Validation ───► Distribution   │
-│   Exchanges ─────┤         │              │                 │               │          │
-│   News APIs ─────┘         │              │                 │               │          │
-│                            ▼              ▼                 ▼               ▼          │
-│                       ┌─────────┐   ┌─────────┐       ┌─────────┐    ┌─────────┐     │
-│                       │ Symbol  │   │ Price   │       │ Sanity  │    │ ZeroMQ  │     │
-│                       │ Mapping │   │ Format  │       │ Checks  │    │ Publish │     │
-│                       └─────────┘   └─────────┘       └─────────┘    ├─────────┤     │
-│                                                                       │ Redis   │     │
-│                                                                       │ Stream  │     │
-│                                                                       ├─────────┤     │
-│                                                                       │ Kafka   │     │
-│                                                                       │ Topic   │     │
-│                                                                       └─────────┘     │
-│                                                                                         │
-│   INTERNAL CONSUMERS                                                                    │
-│   ══════════════════                                                                    │
-│                                                                                         │
-│   mt5_tick ◄──────── ZeroMQ (lowest latency)                                           │
-│   bh-risk ◄────────── Redis Streams (durable)                                          │
-│   bh-quant ◄───────── Kafka (analytics, replay)                                        │
-│   bh-guardian ◄────── ZeroMQ (lowest latency)                                          │
-│                                                                                         │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph External["EXTERNAL SOURCES"]
+        Bloomberg["Bloomberg"]
+        Reuters["Reuters"]
+        Exchanges["Exchanges"]
+        NewsAPIs["News APIs"]
+    end
+
+    subgraph Processing["PROCESSING PIPELINE"]
+        Raw["Raw Data"]
+        Norm["Normalization"]
+        Valid["Validation"]
+        Dist["Distribution"]
+    end
+
+    subgraph Consumers["INTERNAL CONSUMERS"]
+        MT5["mt5_tick\n(ZeroMQ)"]
+        Risk["bh-risk\n(Redis)"]
+        Quant["bh-quant\n(Kafka)"]
+        Guardian["bh-guardian\n(ZeroMQ)"]
+    end
+
+    External --> Raw
+    Raw --> Norm
+    Norm --> Valid
+    Valid --> Dist
+    Dist --> Consumers
 ```
 
 ## API Specifications
@@ -245,26 +244,21 @@ subscriptions:
 
 ### FIX Protocol (Exchanges)
 
-```
-Session Configuration:
-├── SenderCompID: BLACKHOLE
-├── TargetCompID: [EXCHANGE]
-├── HeartBtInt: 30
-├── ReconnectInterval: 5
-├── ResetOnLogon: Y
-├── ResetOnLogout: Y
-├── ResetOnDisconnect: Y
-└── UseDataDictionary: Y
+**Session Configuration:**
+- SenderCompID: BLACKHOLE
+- TargetCompID: [EXCHANGE]
+- HeartBtInt: 30
+- ReconnectInterval: 5
+- ResetOnLogon: Y
 
-Message Types:
-├── Logon (A)
-├── Logout (5)
-├── Heartbeat (0)
-├── Market Data Request (V)
-├── Market Data Snapshot (W)
-├── Market Data Incremental (X)
-└── Reject (3)
-```
+**Message Types:**
+- Logon (A)
+- Logout (5)
+- Heartbeat (0)
+- Market Data Request (V)
+- Market Data Snapshot (W)
+- Market Data Incremental (X)
+- Reject (3)
 
 ### REST APIs
 
@@ -309,13 +303,15 @@ news_api:
 
 ### Cross-Source Validation
 
-```
-Price Discrepancy Detection:
-├── Compare Bloomberg vs Reuters
-├── Flag if difference > 0.5%
-├── Use weighted average if both valid
-├── Alert if persistent discrepancy
-└── Log all discrepancies for analysis
+```mermaid
+flowchart LR
+    Bloomberg["Bloomberg Price"] --> Compare["Compare"]
+    Reuters["Reuters Price"] --> Compare
+    Compare --> Check{"Diff > 0.5%?"}
+    Check -->|Yes| Alert["Alert + Log"]
+    Check -->|No| WeightedAvg["Weighted Average"]
+    WeightedAvg --> Output["Final Price"]
+    Alert --> Output
 ```
 
 ### Latency Monitoring
@@ -324,49 +320,40 @@ Price Discrepancy Detection:
 |--------|----------------|-----------------|
 | Bloomberg | < 5ms | > 20ms |
 | Reuters | < 10ms | > 50ms |
-| COMEX FIX | < 1ms | > 5ms |
+| COMEX FIX | < 5ms | > 20ms |
 | News feeds | < 1s | > 5s |
 
 ## Failover Strategy
 
+```mermaid
+flowchart TD
+    subgraph MarketData["MARKET DATA FAILOVER"]
+        T1["Tier 1: Bloomberg B-PIPE\n(Primary)"]
+        T2["Tier 2: Reuters Elektron\n(Secondary)"]
+        T3["Tier 3: Exchange Direct\n(Tertiary)"]
+        Pause["TRADING PAUSE\nNo reliable data"]
+    end
+
+    T1 -->|"No update > 5s"| T2
+    T2 -->|"No update > 5s"| T3
+    T3 -->|"All sources failed"| Pause
+
+    subgraph NewsData["NEWS FAILOVER"]
+        N1["Tier 1: Bloomberg News"]
+        N2["Tier 2: Reuters News"]
+        N3["Tier 3: Dow Jones"]
+    end
+
+    N1 --> N2 --> N3
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              FAILOVER HIERARCHY                                 │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│   MARKET DATA FAILOVER                                                          │
-│   ════════════════════                                                          │
-│                                                                                 │
-│   Tier 1: Bloomberg B-PIPE (Primary)                                           │
-│      │                                                                          │
-│      │ (Failure: no update > 5s, error rate > 1%)                              │
-│      ▼                                                                          │
-│   Tier 2: Reuters Elektron (Secondary)                                         │
-│      │                                                                          │
-│      │ (Failure: no update > 5s, error rate > 1%)                              │
-│      ▼                                                                          │
-│   Tier 3: Exchange Direct Feeds (Tertiary)                                     │
-│      │                                                                          │
-│      │ (Failure: all sources unavailable)                                      │
-│      ▼                                                                          │
-│   TRADING PAUSE: No reliable market data                                        │
-│                                                                                 │
-│                                                                                 │
-│   NEWS FAILOVER                                                                 │
-│   ═════════════                                                                 │
-│                                                                                 │
-│   Tier 1: Bloomberg News                                                        │
-│      │                                                                          │
-│      ▼                                                                          │
-│   Tier 2: Reuters News                                                          │
-│      │                                                                          │
-│      ▼                                                                          │
-│   Tier 3: Dow Jones                                                            │
-│                                                                                 │
-│   Note: News failover is less critical; trading continues with delayed news    │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+
+**Failover Criteria:**
+- No update for > 5 seconds
+- Latency > 100ms sustained
+- Price validation failures
+- Connection errors
+
+**Note**: News failover is less critical; trading continues with delayed news
 
 ## Compliance & Licensing
 

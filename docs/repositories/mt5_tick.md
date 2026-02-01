@@ -12,49 +12,35 @@
 | **Build System** | CMake 3.25+ |
 | **Compiler** | GCC 13+ / Clang 17+ |
 | **Dependencies** | ZeroMQ, Boost, MT5 API SDK, HdrHistogram |
-| **Target Latency** | < 100μs tick distribution |
+| **Target Latency** | < 1ms tick distribution |
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              mt5_tick                                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │                      MT5 Data Feed Handler                          │  │
-│   │                                                                     │  │
-│   │   ┌───────────┐    ┌───────────┐    ┌───────────┐                  │  │
-│   │   │   XAUUSD  │    │   EURUSD  │    │  USDJPY   │   ...            │  │
-│   │   │   Feed    │    │   Feed    │    │   Feed    │                  │  │
-│   │   └─────┬─────┘    └─────┬─────┘    └─────┬─────┘                  │  │
-│   │         │                │                │                         │  │
-│   └─────────┼────────────────┼────────────────┼─────────────────────────┘  │
-│             │                │                │                             │
-│             └────────────────┼────────────────┘                             │
-│                              ▼                                              │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │                     Tick Aggregator                                 │  │
-│   │                                                                     │  │
-│   │   ┌───────────────┐  ┌───────────────┐  ┌───────────────┐         │  │
-│   │   │  Tick Buffer  │  │  Bar Builder  │  │  Statistics   │         │  │
-│   │   │  (Ring)       │  │  (OHLCV)      │  │  Calculator   │         │  │
-│   │   └───────┬───────┘  └───────┬───────┘  └───────┬───────┘         │  │
-│   │           │                  │                  │                  │  │
-│   └───────────┼──────────────────┼──────────────────┼──────────────────┘  │
-│               │                  │                  │                      │
-│               ▼                  ▼                  ▼                      │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │                      Publisher Engine                               │  │
-│   │                                                                     │  │
-│   │   ┌───────────────┐  ┌───────────────┐  ┌───────────────┐         │  │
-│   │   │  ZMQ PUB      │  │  Redis Stream │  │  TimescaleDB  │         │  │
-│   │   │  (Real-time)  │  │  (Durable)    │  │  (Historical) │         │  │
-│   │   └───────────────┘  └───────────────┘  └───────────────┘         │  │
-│   │                                                                     │  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph mt5Tick["mt5_tick"]
+        subgraph feedHandler["MT5 Data Feed Handler"]
+            XAUUSD["XAUUSD Feed"]
+            EURUSD["EURUSD Feed"]
+            USDJPY["USDJPY Feed"]
+            etc["..."]
+        end
+
+        subgraph aggregator["Tick Aggregator"]
+            TickBuffer["Tick Buffer (Ring)"]
+            BarBuilder["Bar Builder (OHLCV)"]
+            StatsCalc["Statistics Calculator"]
+        end
+
+        subgraph publisher["Publisher Engine"]
+            ZMQPUB["ZMQ PUB (Real-time)"]
+            RedisStream["Redis Stream (Durable)"]
+            TimescaleDB["TimescaleDB (Historical)"]
+        end
+
+        feedHandler --> aggregator
+        aggregator --> publisher
+    end
 ```
 
 ## Core Components
@@ -197,8 +183,8 @@ monitoring:
 
 | Metric | Target | Typical |
 |--------|--------|---------|
-| Tick processing latency | < 50μs | 10-30μs |
-| Distribution latency | < 100μs | 50-80μs |
+| Tick processing latency | < 0.5ms | 0.1-0.3ms |
+| Distribution latency | < 1ms | 0.5-0.8ms |
 | Throughput | > 100,000 ticks/sec | 150,000 ticks/sec |
 | Memory footprint | < 512MB | 256MB |
 
@@ -303,22 +289,13 @@ net.ipv4.tcp_wmem = 4096 65536 134217728
 
 ## High Availability
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Load Balancer                            │
-│                  (Health-based routing)                     │
-└─────────────────────────┬───────────────────────────────────┘
-                          │
-          ┌───────────────┼───────────────┐
-          │               │               │
-          ▼               ▼               ▼
-    ┌──────────┐    ┌──────────┐    ┌──────────┐
-    │mt5_tick  │    │mt5_tick  │    │mt5_tick  │
-    │(Active)  │    │(Standby) │    │(Standby) │
-    └──────────┘    └──────────┘    └──────────┘
-          │
-          ▼
-    Primary Publisher
+```mermaid
+flowchart TD
+    LB["Load Balancer (Health-based routing)"]
+    LB --> Active["mt5_tick (Active)"]
+    LB --> Standby1["mt5_tick (Standby)"]
+    LB --> Standby2["mt5_tick (Standby)"]
+    Active --> PrimaryPub["Primary Publisher"]
 ```
 
 - Active instance publishes to ZMQ

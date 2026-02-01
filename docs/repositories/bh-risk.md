@@ -15,53 +15,62 @@
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                                 bh-risk                                         │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│   ┌─────────────────────────────────────────────────────────────────────────┐  │
-│   │                         gRPC Service Layer                              │  │
-│   │                                                                         │  │
-│   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   │  │
-│   │  │ EvaluateOrd │  │ StreamPos   │  │ GetMetrics  │  │ UpdateParams│   │  │
-│   │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘   │  │
-│   │         │                │                │                │          │  │
-│   └─────────┼────────────────┼────────────────┼────────────────┼──────────┘  │
-│             │                │                │                │              │
-│             ▼                ▼                ▼                ▼              │
-│   ┌─────────────────────────────────────────────────────────────────────────┐│
-│   │                         Risk Engine Core                                ││
-│   │                                                                         ││
-│   │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐     ││
-│   │  │  Position Sizer  │  │  Exposure Calc   │  │  VaR Engine      │     ││
-│   │  │                  │  │                  │  │                  │     ││
-│   │  │  - Kelly         │  │  - Gross/Net     │  │  - Historical    │     ││
-│   │  │  - Fractional    │  │  - Correlation   │  │  - Parametric    │     ││
-│   │  │  - Vol Adjusted  │  │  - Sector        │  │  - Monte Carlo   │     ││
-│   │  └──────────────────┘  └──────────────────┘  └──────────────────┘     ││
-│   │                                                                         ││
-│   │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐     ││
-│   │  │  Limit Checker   │  │  Drawdown Mgr    │  │  Regime Detector │     ││
-│   │  │                  │  │                  │  │                  │     ││
-│   │  │  - Order limits  │  │  - Daily DD      │  │  - Vol regime    │     ││
-│   │  │  - Position lim  │  │  - Weekly DD     │  │  - Trend regime  │     ││
-│   │  │  - Account lim   │  │  - Peak tracking │  │  - Risk-off      │     ││
-│   │  └──────────────────┘  └──────────────────┘  └──────────────────┘     ││
-│   │                                                                         ││
-│   └─────────────────────────────────────────────────────────────────────────┘│
-│                                                                               │
-│   ┌─────────────────────────────────────────────────────────────────────────┐│
-│   │                         Data Layer                                      ││
-│   │                                                                         ││
-│   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   ││
-│   │  │   Redis     │  │  PostgreSQL │  │  Quant Feed │  │  Market     │   ││
-│   │  │  (Cache)    │  │  (Persist)  │  │  (Signals)  │  │  (Prices)   │   ││
-│   │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘   ││
-│   │                                                                         ││
-│   └─────────────────────────────────────────────────────────────────────────┘│
-│                                                                               │
-└───────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph bh-risk["bh-risk"]
+        subgraph grpc["gRPC Service Layer"]
+            EvaluateOrd["EvaluateOrd"]
+            StreamPos["StreamPos"]
+            GetMetrics["GetMetrics"]
+            UpdateParams["UpdateParams"]
+        end
+
+        subgraph core["Risk Engine Core"]
+            subgraph sizing["Position Sizer"]
+                kelly["Kelly"]
+                fractional["Fractional"]
+                volAdj["Vol Adjusted"]
+            end
+            subgraph exposure["Exposure Calc"]
+                grossNet["Gross/Net"]
+                correlation["Correlation"]
+                sector["Sector"]
+            end
+            subgraph var["VaR Engine"]
+                historical["Historical"]
+                parametric["Parametric"]
+                monteCarlo["Monte Carlo"]
+            end
+            subgraph limits["Limit Checker"]
+                orderLimits["Order limits"]
+                posLimits["Position lim"]
+                acctLimits["Account lim"]
+            end
+            subgraph drawdown["Drawdown Mgr"]
+                dailyDD["Daily DD"]
+                weeklyDD["Weekly DD"]
+                peakTracking["Peak tracking"]
+            end
+            subgraph regime["Regime Detector"]
+                volRegime["Vol regime"]
+                trendRegime["Trend regime"]
+                riskOff["Risk-off"]
+            end
+        end
+
+        subgraph data["Data Layer"]
+            Redis["Redis (Cache)"]
+            PostgreSQL["PostgreSQL (Persist)"]
+            QuantFeed["Quant Feed (Signals)"]
+            Market["Market (Prices)"]
+        end
+
+        EvaluateOrd --> core
+        StreamPos --> core
+        GetMetrics --> core
+        UpdateParams --> core
+        core --> data
+    end
 ```
 
 ## Core Components
@@ -152,26 +161,24 @@ Provides better tail risk measurement than VaR alone.
 
 Tracks and manages drawdown at multiple time horizons.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                  Drawdown Thresholds                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Daily Drawdown                                             │
-│  ├── 0.5% : Warning (reduce position sizes by 25%)         │
-│  ├── 0.75%: Alert (reduce position sizes by 50%)           │
-│  └── 1.0% : HALT (circuit breaker - close all positions)   │
-│                                                             │
-│  Weekly Drawdown                                            │
-│  ├── 2.0% : Warning                                         │
-│  ├── 3.0% : Alert (no new positions)                        │
-│  └── 4.0% : Review required                                 │
-│                                                             │
-│  Monthly Drawdown                                           │
-│  ├── 5.0% : Warning                                         │
-│  └── 8.0% : Strategy review required                        │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph thresholds["Drawdown Thresholds"]
+        subgraph daily["Daily Drawdown"]
+            d1["0.5% : Warning (reduce position sizes by 25%)"]
+            d2["0.75%: Alert (reduce position sizes by 50%)"]
+            d3["1.0% : HALT (circuit breaker - close all positions)"]
+        end
+        subgraph weekly["Weekly Drawdown"]
+            w1["2.0% : Warning"]
+            w2["3.0% : Alert (no new positions)"]
+            w3["4.0% : Review required"]
+        end
+        subgraph monthly["Monthly Drawdown"]
+            m1["5.0% : Warning"]
+            m2["8.0% : Strategy review required"]
+        end
+    end
 ```
 
 ### 6. Regime Detector
@@ -187,51 +194,25 @@ Integrates with bh-quant-engine to adjust risk parameters based on market regime
 
 ## Risk Evaluation Flow
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        Order Risk Evaluation                                │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Input["Input: OrderRequest"] --> TradingCheck{"Trading Allowed?"}
+    TradingCheck -->|NO| RejectHalted["REJECT: Halted"]
+    TradingCheck -->|YES| PositionCheck{"Within Position Limits?"}
+    PositionCheck -->|NO| RejectLimit["REJECT: Limit Exceeded"]
+    PositionCheck -->|YES| ExposureCheck{"Within Exposure Limits?"}
+    ExposureCheck -->|NO| RejectExposure["REJECT: Exposure Exceeded"]
+    ExposureCheck -->|YES| CalcSize["Calculate Position Size"]
+    CalcSize --> VaRCheck{"Check VaR Contribution"}
+    VaRCheck -->|EXCEEDS| ReduceSize["Reduce Size to VaR Budget"]
+    VaRCheck -->|OK| Output
+    ReduceSize --> Output
 
-Input: OrderRequest
-         │
-         ▼
-┌─────────────────┐     NO      ┌─────────────────┐
-│ Trading Allowed?│────────────►│ REJECT: Halted  │
-└────────┬────────┘             └─────────────────┘
-         │ YES
-         ▼
-┌─────────────────┐     NO      ┌─────────────────┐
-│ Within Position │────────────►│ REJECT: Limit   │
-│     Limits?     │             │   Exceeded      │
-└────────┬────────┘             └─────────────────┘
-         │ YES
-         ▼
-┌─────────────────┐     NO      ┌─────────────────┐
-│ Within Exposure │────────────►│ REJECT: Exposure│
-│     Limits?     │             │   Exceeded      │
-└────────┬────────┘             └─────────────────┘
-         │ YES
-         ▼
-┌─────────────────┐
-│ Calculate       │
-│ Position Size   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐     EXCEEDS ┌─────────────────┐
-│ Check VaR       │────────────►│ Reduce Size to  │
-│ Contribution    │             │ VaR Budget      │
-└────────┬────────┘             └────────┬────────┘
-         │ OK                            │
-         └──────────────┬────────────────┘
-                        ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ Output: RiskDecision                                                        │
-│   - approved: true/false                                                    │
-│   - adjusted_volume: optimal size                                           │
-│   - max_loss: potential loss at stop                                        │
-│   - risk_level: LOW/MEDIUM/HIGH/CRITICAL                                    │
-└─────────────────────────────────────────────────────────────────────────────┘
+    Output["Output: RiskDecision
+    - approved: true/false
+    - adjusted_volume: optimal size
+    - max_loss: potential loss at stop
+    - risk_level: LOW/MEDIUM/HIGH/CRITICAL"]
 ```
 
 ## Configuration
@@ -362,22 +343,10 @@ bh_risk_current_regime{regime="low|normal|high|extreme"}
 
 ## Integration Points
 
-```
-                    ┌─────────────────┐
-                    │   bh-quant      │
-                    │  (Volatility,   │
-                    │   Regime)       │
-                    └────────┬────────┘
-                             │
-                             ▼
-┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-│  bh-core    │─────►│   bh-risk   │─────►│ bh-guardian │
-│  (Orders)   │      │             │      │ (Circuit)   │
-└─────────────┘      └─────────────┘      └─────────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │  mt5_executor   │
-                    │  (Execution)    │
-                    └─────────────────┘
+```mermaid
+flowchart TD
+    bhQuant["bh-quant (Volatility, Regime)"] --> bhRisk["bh-risk"]
+    bhCore["bh-core (Orders)"] --> bhRisk
+    bhRisk --> bhGuardian["bh-guardian (Circuit)"]
+    bhRisk --> mt5Executor["mt5_executor (Execution)"]
 ```

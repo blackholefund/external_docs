@@ -6,168 +6,181 @@ BlackHole Fund's infrastructure utilizes a combination of communication protocol
 
 ## Protocol Matrix
 
-```
-┌────────────────────┬───────────────────┬──────────────────┬─────────────────┐
-│     Service        │   Protocol        │   Pattern        │   Latency       │
-├────────────────────┼───────────────────┼──────────────────┼─────────────────┤
-│ mt5_tick           │ ZeroMQ (PUB/SUB)  │ Publish-Subscribe│ < 100μs         │
-│ mt5_executor       │ ZeroMQ (REQ/REP)  │ Request-Reply    │ < 500μs         │
-│ bh-risk            │ gRPC              │ Unary/Stream     │ < 5ms           │
-│ bh-guardian        │ gRPC + ZeroMQ     │ Hybrid           │ < 1ms           │
-│ bh-quant-engine    │ Redis Streams     │ Consumer Group   │ < 50ms          │
-│ bh-core            │ gRPC              │ Bidirectional    │ < 10ms          │
-│ bh-market-gateway  │ FIX + WebSocket   │ Various          │ < 20ms          │
-└────────────────────┴───────────────────┴──────────────────┴─────────────────┘
-```
+| Service | Protocol | Pattern | Latency |
+|---------|----------|---------|---------|
+| mt5_tick | ZeroMQ (PUB/SUB) | Publish-Subscribe | < 5ms |
+| mt5_executor | ZeroMQ (REQ/REP) | Request-Reply | < 5ms |
+| bh-risk | gRPC | Unary/Stream | < 15ms |
+| bh-guardian | gRPC + ZeroMQ | Hybrid | < 5ms |
+| bh-quant-engine | Redis Streams | Consumer Group | < 50ms |
+| bh-core | gRPC | Bidirectional | < 10ms |
+| bh-market-gateway | FIX + WebSocket | Various | < 20ms |
 
 ## Service Communication Diagram
 
+### Synchronous Communication (gRPC)
+
+```mermaid
+flowchart LR
+    subgraph gRPC_Services["gRPC Service Mesh"]
+        Core["bh-core"]
+        Risk["bh-risk"]
+        Guard["bh-guardian"]
+        Quant["bh-quant-engine"]
+    end
+
+    Core <-->|gRPC| Risk
+    Core <-->|gRPC| Guard
+    Risk <-->|gRPC| Quant
+    Guard <-->|gRPC| Quant
 ```
-                           SYNCHRONOUS COMMUNICATION (gRPC)
-═══════════════════════════════════════════════════════════════════════════════════
 
-         ┌─────────────────────────────────────────────────────────────────┐
-         │                                                                 │
-         │    ┌──────────┐        gRPC          ┌──────────┐              │
-         │    │ bh-core  │◄────────────────────►│ bh-risk  │              │
-         │    └────┬─────┘                      └────┬─────┘              │
-         │         │                                 │                     │
-         │         │ gRPC                            │ gRPC                │
-         │         │                                 │                     │
-         │         ▼                                 ▼                     │
-         │    ┌──────────┐        gRPC          ┌──────────┐              │
-         │    │bh-guard  │◄────────────────────►│bh-quant  │              │
-         │    └──────────┘                      └──────────┘              │
-         │                                                                 │
-         └─────────────────────────────────────────────────────────────────┘
+### Asynchronous Communication (ZeroMQ)
 
+```mermaid
+flowchart TB
+    subgraph Publishers["Publishers"]
+        MT5T["mt5_tick\n[PUB]"]
+    end
 
-                        ASYNCHRONOUS COMMUNICATION (ZeroMQ/Redis)
-═══════════════════════════════════════════════════════════════════════════════════
+    subgraph Proxy["Message Broker"]
+        ZMQ["ZeroMQ\nProxy"]
+    end
 
-    ┌─────────────┐                                          ┌─────────────┐
-    │  mt5_tick   │──────────────────┐                       │ bh-quant    │
-    │   [PUB]     │                  │                       │   [SUB]     │
-    └─────────────┘                  │                       └──────▲──────┘
-                                     │                              │
-                                     ▼                              │
-                              ┌─────────────┐                       │
-                              │   ZeroMQ    │───────────────────────┤
-                              │   Proxy     │                       │
-                              └─────────────┘                       │
-                                     │                              │
-                                     │                              │
-    ┌─────────────┐                  │                       ┌──────┴──────┐
-    │  bh-risk    │◄─────────────────┘                       │  bh-core    │
-    │   [SUB]     │                                          │   [SUB]     │
-    └─────────────┘                                          └─────────────┘
+    subgraph Subscribers["Subscribers"]
+        Quant["bh-quant\n[SUB]"]
+        Risk["bh-risk\n[SUB]"]
+        Core["bh-core\n[SUB]"]
+    end
 
+    MT5T --> ZMQ
+    ZMQ --> Quant
+    ZMQ --> Risk
+    ZMQ --> Core
+```
 
-                           EVENT STREAMING (Redis Streams)
-═══════════════════════════════════════════════════════════════════════════════════
+### Event Streaming (Redis Streams)
 
-    ┌─────────────┐
-    │bh-market-gw │─────┐                               ┌─────────────────────────┐
-    └─────────────┘     │                               │    Consumer Groups      │
-                        │                               │                         │
-    ┌─────────────┐     │      ┌─────────────┐         │  ┌─────────────────┐    │
-    │  mt5_tick   │─────┼─────►│   Redis     │────────►│  │ cg:risk-engine  │────┼───► bh-risk
-    └─────────────┘     │      │   Stream    │         │  └─────────────────┘    │
-                        │      │             │         │                         │
-    ┌─────────────┐     │      │  market:    │         │  ┌─────────────────┐    │
-    │  bh-quant   │─────┘      │  ticks      │────────►│  │ cg:quant-engine │────┼───► bh-quant
-    └─────────────┘            └─────────────┘         │  └─────────────────┘    │
-                                                       │                         │
-                                                       │  ┌─────────────────┐    │
-                                                       │  │ cg:analytics    │────┼───► Analytics
-                                                       │  └─────────────────┘    │
-                                                       └─────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Producers["Producers"]
+        Gateway["bh-market-gateway"]
+        Tick["mt5_tick"]
+        Quant["bh-quant"]
+    end
+
+    subgraph Redis["Redis Streams"]
+        Stream["market:ticks"]
+    end
+
+    subgraph Consumers["Consumer Groups"]
+        CG1["cg:risk-engine"]
+        CG2["cg:quant-engine"]
+        CG3["cg:analytics"]
+    end
+
+    Gateway --> Stream
+    Tick --> Stream
+    Quant --> Stream
+
+    Stream --> CG1 --> RiskSvc["bh-risk"]
+    Stream --> CG2 --> QuantSvc["bh-quant"]
+    Stream --> CG3 --> Analytics["Analytics"]
 ```
 
 ## Protocol Details
 
 ### 1. ZeroMQ (High-Performance Messaging)
 
-Used for ultra-low-latency communication in the execution path.
+Used for low-latency communication in the execution path.
 
 #### Tick Data Distribution (PUB/SUB)
 
+```mermaid
+flowchart LR
+    MT5["mt5_tick\nPUB :5555"] -->|"TICK.XAUUSD"| Sub1["bh-quant"]
+    MT5 -->|"TICK.XAUUSD"| Sub2["bh-risk"]
+    MT5 -->|"TICK.XAUUSD"| Sub3["bh-core"]
 ```
-Publisher: mt5_tick
-Socket Type: PUB
-Endpoint: tcp://*:5555
 
-Message Format:
-┌──────────────────────────────────────────────────────────────┐
-│ Header (8 bytes)  │ Symbol (6 bytes) │ Payload (Variable)    │
-├───────────────────┼──────────────────┼───────────────────────┤
-│ MSG_TYPE: TICK    │ XAUUSD           │ Bid, Ask, Timestamp   │
-│ SEQ_NUM: uint64   │                  │ Volume, Spread        │
-└───────────────────┴──────────────────┴───────────────────────┘
+**Message Format:**
 
-Topic Filtering:
-- TICK.XAUUSD      (Gold spot ticks)
-- TICK.XAUUSD.1M   (1-minute aggregates)
-- TICK.XAUUSD.5M   (5-minute aggregates)
-```
+| Field | Size | Description |
+|-------|------|-------------|
+| Header | 8 bytes | MSG_TYPE, SEQ_NUM |
+| Symbol | 6 bytes | e.g., XAUUSD |
+| Payload | Variable | Bid, Ask, Timestamp, Volume |
+
+**Topic Filtering:**
+- `TICK.XAUUSD` - Gold spot ticks
+- `TICK.XAUUSD.1M` - 1-minute aggregates
+- `TICK.XAUUSD.5M` - 5-minute aggregates
 
 #### Order Execution (REQ/REP)
 
-```
-Service: mt5_executor
-Socket Type: REP
-Endpoint: tcp://*:5556
+```mermaid
+sequenceDiagram
+    participant Core as bh-core
+    participant Exec as mt5_executor
+    participant Broker as MT5 Broker
 
-Request Message:
-┌─────────────────────────────────────────────────────────────────────┐
-│ Field           │ Type      │ Description                          │
-├─────────────────┼───────────┼──────────────────────────────────────┤
-│ request_id      │ uuid      │ Unique request identifier            │
-│ action          │ enum      │ BUY, SELL, MODIFY, CANCEL            │
-│ symbol          │ string    │ Trading symbol (e.g., XAUUSD)        │
-│ volume          │ double    │ Position size in lots                │
-│ price           │ double    │ Requested price (0 for market)       │
-│ sl              │ double    │ Stop loss price                      │
-│ tp              │ double    │ Take profit price                    │
-│ magic           │ int64     │ Expert Advisor identifier            │
-│ comment         │ string    │ Order comment                        │
-└─────────────────┴───────────┴──────────────────────────────────────┘
-
-Response Message:
-┌─────────────────────────────────────────────────────────────────────┐
-│ Field           │ Type      │ Description                          │
-├─────────────────┼───────────┼──────────────────────────────────────┤
-│ request_id      │ uuid      │ Original request identifier          │
-│ status          │ enum      │ SUCCESS, REJECTED, PARTIAL, ERROR    │
-│ order_id        │ int64     │ Broker order identifier              │
-│ filled_price    │ double    │ Actual execution price               │
-│ filled_volume   │ double    │ Actual filled volume                 │
-│ latency_us      │ int64     │ Execution latency in microseconds    │
-│ error_code      │ int32     │ Error code (if applicable)           │
-│ error_message   │ string    │ Error description                    │
-└─────────────────┴───────────┴──────────────────────────────────────┘
+    Core->>Exec: OrderRequest (ZMQ REQ)
+    Exec->>Broker: MT5 API Call
+    Broker-->>Exec: Execution Result
+    Exec-->>Core: OrderResponse (ZMQ REP)
 ```
+
+**Request Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| request_id | uuid | Unique request identifier |
+| action | enum | BUY, SELL, MODIFY, CANCEL |
+| symbol | string | Trading symbol (e.g., XAUUSD) |
+| volume | double | Position size in lots |
+| price | double | Requested price (0 for market) |
+| sl | double | Stop loss price |
+| tp | double | Take profit price |
+
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| request_id | uuid | Original request identifier |
+| status | enum | SUCCESS, REJECTED, PARTIAL, ERROR |
+| order_id | int64 | Broker order identifier |
+| filled_price | double | Actual execution price |
+| filled_volume | double | Actual filled volume |
+| latency_ms | int64 | Execution latency |
 
 ### 2. gRPC (Service-to-Service Communication)
 
 Used for reliable, typed communication between core services.
 
+#### Service Interaction
+
+```mermaid
+flowchart TB
+    subgraph Services["gRPC Services"]
+        Core["bh-core\n:50051"]
+        Risk["bh-risk\n:50052"]
+        Guardian["bh-guardian\n:50053"]
+        Quant["bh-quant-engine\n:50054"]
+    end
+
+    Core -->|EvaluateOrder| Risk
+    Risk -->|GetVolatility| Quant
+    Core -->|CheckStatus| Guardian
+    Risk -->|UpdateDrawdown| Guardian
+```
+
 #### Risk Service API
 
 ```protobuf
-// risk_service.proto
-
 service RiskService {
-  // Evaluate order before execution
   rpc EvaluateOrder(OrderRequest) returns (RiskDecision);
-
-  // Stream real-time position updates
   rpc StreamPositions(PositionFilter) returns (stream PositionUpdate);
-
-  // Get current risk metrics
   rpc GetRiskMetrics(MetricsRequest) returns (RiskMetrics);
-
-  // Update risk parameters
   rpc UpdateParameters(RiskParameters) returns (UpdateResponse);
 }
 
@@ -190,16 +203,9 @@ enum RiskLevel {
 #### Guardian Service API (Circuit Breaker)
 
 ```protobuf
-// guardian_service.proto
-
 service GuardianService {
-  // Check if trading is allowed
   rpc CheckTradingStatus(StatusRequest) returns (TradingStatus);
-
-  // Register for circuit breaker events
   rpc SubscribeEvents(EventFilter) returns (stream CircuitEvent);
-
-  // Manual system control
   rpc SetSystemState(StateCommand) returns (StateResponse);
 }
 
@@ -223,24 +229,30 @@ enum SystemState {
 
 Used for durable, distributed event streaming with consumer groups.
 
-#### Stream Configuration
+#### Stream Architecture
 
-```
-Streams:
-├── market:ticks:xauusd          # Real-time tick data
-├── market:bars:xauusd:1m        # 1-minute OHLCV bars
-├── orders:requests              # Order requests
-├── orders:executions            # Execution reports
-├── risk:events                  # Risk events and alerts
-├── system:health                # Health check events
-└── analytics:signals            # Trading signals
+```mermaid
+flowchart TB
+    subgraph Streams["Redis Streams"]
+        S1["market:ticks:xauusd"]
+        S2["market:bars:xauusd:1m"]
+        S3["orders:requests"]
+        S4["orders:executions"]
+        S5["risk:events"]
+    end
 
-Consumer Groups:
-├── cg:risk-engine              # Risk processing
-├── cg:quant-engine             # Quantitative analysis
-├── cg:order-router             # Order routing
-├── cg:analytics                # Analytics and reporting
-└── cg:audit                    # Audit logging
+    subgraph ConsumerGroups["Consumer Groups"]
+        CG1["cg:risk-engine"]
+        CG2["cg:quant-engine"]
+        CG3["cg:order-router"]
+        CG4["cg:audit"]
+    end
+
+    S1 --> CG1
+    S1 --> CG2
+    S3 --> CG3
+    S4 --> CG4
+    S5 --> CG1
 ```
 
 #### Message Schema Example
@@ -265,43 +277,39 @@ Consumer Groups:
 
 Used for connecting to exchanges and market data providers.
 
-```
-FIX 4.4 Configuration:
-├── Session: bh-gateway -> Exchange
-├── HeartBtInt: 30 seconds
-├── ResetOnLogon: Y
-├── ResetOnLogout: Y
-└── ResetOnDisconnect: Y
+```mermaid
+flowchart LR
+    Gateway["bh-market-gateway"] <-->|"FIX 4.4\nTLS 1.3"| Exchange["Exchange\n(COMEX, ICE)"]
 
-Message Types Supported:
-├── D  - New Order Single
-├── F  - Order Cancel Request
-├── G  - Order Cancel/Replace Request
-├── 8  - Execution Report
-├── 9  - Order Cancel Reject
-├── V  - Market Data Request
-├── W  - Market Data Snapshot
-└── X  - Market Data Incremental Refresh
+    subgraph Messages["FIX Messages"]
+        D["D - New Order"]
+        F["F - Cancel Request"]
+        Eight["8 - Execution Report"]
+        W["W - Market Data"]
+    end
 ```
+
+**FIX Configuration:**
+- Session: bh-gateway -> Exchange
+- HeartBtInt: 30 seconds
+- ResetOnLogon: Y
+
+**Supported Messages:**
+- D - New Order Single
+- F - Order Cancel Request
+- G - Order Cancel/Replace
+- 8 - Execution Report
+- V - Market Data Request
+- W - Market Data Snapshot
+- X - Market Data Incremental
 
 ## Message Serialization
 
-### Protocol Buffers (gRPC Services)
-
-All gRPC services use Protocol Buffers for efficient serialization:
-
-- **Compact**: 3-10x smaller than JSON
-- **Fast**: 20-100x faster parsing
-- **Typed**: Strong schema enforcement
-- **Versioned**: Backward compatible evolution
-
-### MessagePack (ZeroMQ Messages)
-
-High-frequency messages use MessagePack:
-
-- **Binary**: Efficient encoding
-- **Schema-less**: Flexible structure
-- **Fast**: Minimal parsing overhead
+| Format | Use Case | Advantages |
+|--------|----------|------------|
+| **Protocol Buffers** | gRPC Services | 3-10x smaller than JSON, strong typing |
+| **MessagePack** | ZeroMQ Messages | Binary, fast parsing, schema-less |
+| **JSON** | REST APIs, Logging | Human readable, debugging |
 
 ## Error Handling
 
@@ -316,23 +324,20 @@ High-frequency messages use MessagePack:
 
 ### Circuit Breaker Pattern
 
+```mermaid
+stateDiagram-v2
+    [*] --> Closed
+    Closed --> Open: Failure Threshold
+    Open --> HalfOpen: Timeout
+    HalfOpen --> Closed: Success
+    HalfOpen --> Open: Failure
 ```
-┌─────────────┐     Failure      ┌─────────────┐
-│   CLOSED    │────────────────►│    OPEN     │
-│  (Normal)   │                 │  (Blocking) │
-└──────┬──────┘                 └──────┬──────┘
-       │                               │
-       │ Success                       │ Timeout
-       │                               │
-       │         ┌─────────────┐       │
-       └─────────│ HALF-OPEN   │◄──────┘
-                 │  (Testing)  │
-                 └─────────────┘
-                       │
-                       │ Success/Failure
-                       ▼
-                 CLOSED/OPEN
-```
+
+| State | Description | Action |
+|-------|-------------|--------|
+| **Closed** | Normal operation | Requests pass through |
+| **Open** | Failures exceeded | Requests blocked |
+| **Half-Open** | Testing recovery | Limited requests |
 
 ## Security
 
@@ -347,41 +352,43 @@ High-frequency messages use MessagePack:
 
 ### Message Signing
 
-Critical messages (orders, risk decisions) include cryptographic signatures:
+Critical messages include cryptographic signatures:
 
-```
-┌─────────────────────────────────────────┐
-│ Message Envelope                        │
-├─────────────────────────────────────────┤
-│ Header                                  │
-│   ├── message_id: uuid                  │
-│   ├── timestamp: int64                  │
-│   ├── source_service: string            │
-│   └── signature_algorithm: ED25519      │
-├─────────────────────────────────────────┤
-│ Payload (serialized message)            │
-├─────────────────────────────────────────┤
-│ Signature (64 bytes)                    │
-└─────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Envelope["Message Envelope"]
+        Header["Header\n- message_id\n- timestamp\n- source_service"]
+        Payload["Payload\n(serialized)"]
+        Sig["Signature\n(ED25519, 64 bytes)"]
+    end
+
+    Header --> Payload --> Sig
 ```
 
 ## Monitoring
 
-### Latency Tracking
+### Distributed Tracing
 
-Every message includes timing information for end-to-end latency monitoring:
+```mermaid
+flowchart LR
+    subgraph Trace["Request Trace"]
+        A["bh-core\nspan-1"] --> B["bh-risk\nspan-2"]
+        B --> C["bh-guardian\nspan-3"]
+        C --> D["mt5_executor\nspan-4"]
+    end
+```
 
-```
-Trace Headers:
-- x-trace-id: Distributed trace identifier
-- x-span-id: Current span identifier
-- x-parent-span-id: Parent span identifier
-- x-timestamp-origin: Origin timestamp (nanoseconds)
-```
+**Trace Headers:**
+- `x-trace-id`: Distributed trace identifier
+- `x-span-id`: Current span identifier
+- `x-parent-span-id`: Parent span identifier
+- `x-timestamp-origin`: Origin timestamp (nanoseconds)
 
 ### Metrics Collected
 
-- Message throughput (messages/second)
-- Latency percentiles (p50, p95, p99, p99.9)
-- Error rates by type
-- Queue depths and backlogs
+| Metric | Description |
+|--------|-------------|
+| Throughput | Messages per second |
+| Latency | p50, p95, p99, p99.9 |
+| Error Rate | Failures by type |
+| Queue Depth | Backlog size |

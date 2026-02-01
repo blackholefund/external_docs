@@ -15,53 +15,55 @@
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                              bh-market-gateway                                          │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                         │
-│   ┌─────────────────────────────────────────────────────────────────────────────────┐  │
-│   │                         Connector Layer                                         │  │
-│   │                                                                                 │  │
-│   │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │  │
-│   │  │  Bloomberg   │  │  Reuters     │  │  Exchange    │  │  News        │       │  │
-│   │  │  B-PIPE      │  │  Elektron    │  │  FIX Feeds   │  │  API         │       │  │
-│   │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │  │
-│   │         │                 │                 │                 │               │  │
-│   └─────────┼─────────────────┼─────────────────┼─────────────────┼───────────────┘  │
-│             │                 │                 │                 │                   │
-│             └─────────────────┴─────────────────┴─────────────────┘                   │
-│                                       │                                               │
-│                                       ▼                                               │
-│   ┌─────────────────────────────────────────────────────────────────────────────────┐│
-│   │                         Normalization Engine                                    ││
-│   │                                                                                 ││
-│   │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐             ││
-│   │  │  Price Normalizer│  │  Symbol Mapper   │  │  Time Sync       │             ││
-│   │  │                  │  │                  │  │                  │             ││
-│   │  │  - Decimal prec  │  │  - Cross-source  │  │  - NTP sync      │             ││
-│   │  │  - Currency conv │  │  - Alias mapping │  │  - Latency comp  │             ││
-│   │  │  - Unit standard │  │  - Validation    │  │  - Timestamp     │             ││
-│   │  └──────────────────┘  └──────────────────┘  └──────────────────┘             ││
-│   │                                                                                 ││
-│   └─────────────────────────────────────────────────────────────────────────────────┘│
-│                                       │                                               │
-│                                       ▼                                               │
-│   ┌─────────────────────────────────────────────────────────────────────────────────┐│
-│   │                         Aggregation & Distribution                              ││
-│   │                                                                                 ││
-│   │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐             ││
-│   │  │  Best Price      │  │  Conflation      │  │  Fan-out         │             ││
-│   │  │  Aggregator      │  │  Engine          │  │  Publisher       │             ││
-│   │  │                  │  │                  │  │                  │             ││
-│   │  │  - Multi-source  │  │  - Rate limiting │  │  - ZeroMQ        │             ││
-│   │  │  - Weighted avg  │  │  - Sampling      │  │  - Redis Streams │             ││
-│   │  │  - Arbitrage det │  │  - Batching      │  │  - Kafka         │             ││
-│   │  └──────────────────┘  └──────────────────┘  └──────────────────┘             ││
-│   │                                                                                 ││
-│   └─────────────────────────────────────────────────────────────────────────────────┘│
-│                                                                                       │
-└───────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph gateway["bh-market-gateway"]
+        subgraph connectors["Connector Layer"]
+            Bloomberg["Bloomberg B-PIPE"]
+            Reuters["Reuters Elektron"]
+            Exchange["Exchange FIX Feeds"]
+            NewsAPI["News API"]
+        end
+
+        subgraph normalization["Normalization Engine"]
+            subgraph priceNorm["Price Normalizer"]
+                decimal["Decimal prec"]
+                currency["Currency conv"]
+                unit["Unit standard"]
+            end
+            subgraph symbolMap["Symbol Mapper"]
+                crossSource["Cross-source"]
+                aliasMapping["Alias mapping"]
+                validation["Validation"]
+            end
+            subgraph timeSync["Time Sync"]
+                ntp["NTP sync"]
+                latencyComp["Latency comp"]
+                timestamp["Timestamp"]
+            end
+        end
+
+        subgraph aggregation["Aggregation & Distribution"]
+            subgraph bestPrice["Best Price Aggregator"]
+                multiSource["Multi-source"]
+                weightedAvg["Weighted avg"]
+                arbitrageDet["Arbitrage det"]
+            end
+            subgraph conflation["Conflation Engine"]
+                rateLimiting["Rate limiting"]
+                sampling["Sampling"]
+                batching["Batching"]
+            end
+            subgraph fanout["Fan-out Publisher"]
+                ZeroMQ["ZeroMQ"]
+                RedisStreams["Redis Streams"]
+                Kafka["Kafka"]
+            end
+        end
+
+        connectors --> normalization
+        normalization --> aggregation
+    end
 ```
 
 ## Data Sources
@@ -421,33 +423,18 @@ bh_gateway_publish_latency_seconds{channel="..."}
 
 ## Failover & Redundancy
 
+```mermaid
+flowchart TD
+    Primary["Primary: Bloomberg B-PIPE"] -->|failure detected| Secondary["Secondary: Reuters Elektron"]
+    Secondary -->|failure detected| Tertiary["Tertiary: Exchange Direct (COMEX)"]
+    Tertiary -->|all sources failed| Alert["ALERT: Trading paused - no market data"]
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                  Data Source Failover                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│   Primary: Bloomberg B-PIPE                                     │
-│      │                                                          │
-│      │ (failure detected)                                       │
-│      ▼                                                          │
-│   Secondary: Reuters Elektron                                   │
-│      │                                                          │
-│      │ (failure detected)                                       │
-│      ▼                                                          │
-│   Tertiary: Exchange Direct (COMEX)                            │
-│      │                                                          │
-│      │ (all sources failed)                                     │
-│      ▼                                                          │
-│   ALERT: Trading paused - no market data                        │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
 
 Failover Criteria:
 - No update for > 5 seconds
 - Latency > 100ms sustained
 - Price validation failures
 - Connection errors
-```
 
 ## Security
 

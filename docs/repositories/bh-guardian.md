@@ -15,56 +15,56 @@
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                               bh-guardian                                       │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                 │
-│   ┌─────────────────────────────────────────────────────────────────────────┐  │
-│   │                      System State Machine                               │  │
-│   │                                                                         │  │
-│   │                           ┌────────┐                                    │  │
-│   │              ┌───────────►│ ACTIVE │◄───────────┐                       │  │
-│   │              │            └───┬────┘            │                       │  │
-│   │              │                │                 │                       │  │
-│   │         Manual Resume    DD > 0.5%         Manual Resume                │  │
-│   │              │                │                 │                       │  │
-│   │              │                ▼                 │                       │  │
-│   │         ┌────┴───┐       ┌────────┐       ┌────┴───┐                   │  │
-│   │         │ HALTED │◄──────│REDUCED │───────│CLOSING │                   │  │
-│   │         └────────┘       └───┬────┘       └────────┘                   │  │
-│   │              ▲               │                 ▲                       │  │
-│   │              │          DD > 0.75%             │                       │  │
-│   │              │               │                 │                       │  │
-│   │              │               ▼                 │                       │  │
-│   │              │          ┌────────┐             │                       │  │
-│   │              └──────────│CLOSING │─────────────┘                       │  │
-│   │               DD > 1%   └────────┘     All positions closed            │  │
-│   │                                                                         │  │
-│   └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                 │
-│   ┌─────────────────────────────────────────────────────────────────────────┐  │
-│   │                      Core Components                                    │  │
-│   │                                                                         │  │
-│   │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐     │  │
-│   │  │   PnL Tracker    │  │  State Manager   │  │  Order Gate      │     │  │
-│   │  │                  │  │                  │  │                  │     │  │
-│   │  │  - Real-time PnL │  │  - State machine │  │  - Order filter  │     │  │
-│   │  │  - Mark-to-mkt   │  │  - Transitions   │  │  - Allow/Block   │     │  │
-│   │  │  - Peak tracking │  │  - Persistence   │  │  - Audit trail   │     │  │
-│   │  └──────────────────┘  └──────────────────┘  └──────────────────┘     │  │
-│   │                                                                         │  │
-│   │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐     │  │
-│   │  │  Closeout Mgr    │  │  Alert Engine    │  │  Recovery Mgr    │     │  │
-│   │  │                  │  │                  │  │                  │     │  │
-│   │  │  - Position exit │  │  - Notifications │  │  - State restore │     │  │
-│   │  │  - Market orders │  │  - Escalation    │  │  - Daily reset   │     │  │
-│   │  │  - Confirmation  │  │  - Audit log     │  │  - Manual unlock │     │  │
-│   │  └──────────────────┘  └──────────────────┘  └──────────────────┘     │  │
-│   │                                                                         │  │
-│   └─────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                 │
-└─────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph bhGuardian["bh-guardian"]
+        subgraph stateMachine["System State Machine"]
+            ACTIVE["ACTIVE"]
+            REDUCED["REDUCED"]
+            CLOSING["CLOSING"]
+            HALTED["HALTED"]
+
+            ACTIVE -->|"DD > 0.5%"| REDUCED
+            REDUCED -->|"DD > 0.75%"| CLOSING
+            CLOSING -->|"DD > 1%"| HALTED
+            CLOSING -->|"All positions closed"| HALTED
+            HALTED -->|"Manual Resume"| ACTIVE
+            CLOSING -->|"Manual Resume"| ACTIVE
+        end
+
+        subgraph components["Core Components"]
+            subgraph pnlTracker["PnL Tracker"]
+                realtimePnL["Real-time PnL"]
+                markToMkt["Mark-to-mkt"]
+                peakTracking["Peak tracking"]
+            end
+            subgraph stateMgr["State Manager"]
+                stateM["State machine"]
+                transitions["Transitions"]
+                persistence["Persistence"]
+            end
+            subgraph orderGate["Order Gate"]
+                orderFilter["Order filter"]
+                allowBlock["Allow/Block"]
+                auditTrail["Audit trail"]
+            end
+            subgraph closeoutMgr["Closeout Mgr"]
+                positionExit["Position exit"]
+                marketOrders["Market orders"]
+                confirmation["Confirmation"]
+            end
+            subgraph alertEngine["Alert Engine"]
+                notifications["Notifications"]
+                escalation["Escalation"]
+                auditLog["Audit log"]
+            end
+            subgraph recoveryMgr["Recovery Mgr"]
+                stateRestore["State restore"]
+                dailyReset["Daily reset"]
+                manualUnlock["Manual unlock"]
+            end
+        end
+    end
 ```
 
 ## System States
@@ -396,18 +396,15 @@ bh_guardian_closeout_duration_seconds
 
 ### Fail-Safe Design
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Fail-Safe Hierarchy                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  1. If bh-guardian is unreachable → Block all orders            │
-│  2. If price feed is stale (>5s) → Enter REDUCED state          │
-│  3. If PnL calculation fails → Enter CLOSING state              │
-│  4. If state persistence fails → Use in-memory state            │
-│  5. If closeout fails → Retry with increasing aggression        │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph failsafe["Fail-Safe Hierarchy"]
+        fs1["1. If bh-guardian is unreachable → Block all orders"]
+        fs2["2. If price feed is stale (>5s) → Enter REDUCED state"]
+        fs3["3. If PnL calculation fails → Enter CLOSING state"]
+        fs4["4. If state persistence fails → Use in-memory state"]
+        fs5["5. If closeout fails → Retry with increasing aggression"]
+    end
 ```
 
 ### Audit Trail
@@ -422,18 +419,12 @@ Every state change and order decision is logged with:
 
 ## Integration
 
-```
-                    Price Feed (ZMQ)
-                         │
-                         ▼
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  bh-risk    │───►│ bh-guardian │───►│mt5_executor │
-│             │    │             │    │             │
-│ (Risk eval) │    │ (Gate)      │    │ (Execution) │
-└─────────────┘    └─────────────┘    └─────────────┘
-                         │
-                         ▼
-                  Alert Channels
+```mermaid
+flowchart TD
+    PriceFeed["Price Feed (ZMQ)"] --> bhGuardian["bh-guardian (Gate)"]
+    bhRisk["bh-risk (Risk eval)"] --> bhGuardian
+    bhGuardian --> mt5Executor["mt5_executor (Execution)"]
+    bhGuardian --> AlertChannels["Alert Channels"]
 ```
 
 ## Emergency Procedures

@@ -16,80 +16,55 @@
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                              bh-quant-engine                                            │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                         │
-│   ┌─────────────────────────────────────────────────────────────────────────────────┐  │
-│   │                         Data Ingestion Layer                                    │  │
-│   │                                                                                 │  │
-│   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐           │  │
-│   │  │ Tick Stream │  │ Bar Stream  │  │ Economic    │  │ Bloomberg   │           │  │
-│   │  │ (Redis)     │  │ (Redis)     │  │ Calendar    │  │ News Feed   │           │  │
-│   │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘           │  │
-│   │         │                │                │                │                   │  │
-│   └─────────┼────────────────┼────────────────┼────────────────┼───────────────────┘  │
-│             │                │                │                │                       │
-│             └────────────────┴────────────────┴────────────────┘                       │
-│                                      │                                                  │
-│                                      ▼                                                  │
-│   ┌─────────────────────────────────────────────────────────────────────────────────┐  │
-│   │                      Quantitative Models Engine                                 │  │
-│   │                                                                                 │  │
-│   │  ┌───────────────────────────────────────────────────────────────────────────┐ │  │
-│   │  │                    Volatility Forecasting Module                          │ │  │
-│   │  │                                                                           │ │  │
-│   │  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐        │ │  │
-│   │  │  │ GARCH   │  │ EGARCH  │  │ TGARCH  │  │ FIGARCH │  │ RS-GARCH│        │ │  │
-│   │  │  │ (1,1)   │  │         │  │ (GJR)   │  │         │  │         │        │ │  │
-│   │  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘        │ │  │
-│   │  │                                                                           │ │  │
-│   │  └───────────────────────────────────────────────────────────────────────────┘ │  │
-│   │                                                                                 │  │
-│   │  ┌───────────────────────────────────────────────────────────────────────────┐ │  │
-│   │  │                    Time Series Analysis Module                            │ │  │
-│   │  │                                                                           │ │  │
-│   │  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐        │ │  │
-│   │  │  │ ARIMA   │  │ SARIMA  │  │ VAR     │  │ VECM    │  │ State   │        │ │  │
-│   │  │  │         │  │         │  │         │  │         │  │ Space   │        │ │  │
-│   │  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘        │ │  │
-│   │  │                                                                           │ │  │
-│   │  └───────────────────────────────────────────────────────────────────────────┘ │  │
-│   │                                                                                 │  │
-│   │  ┌───────────────────────────────────────────────────────────────────────────┐ │  │
-│   │  │                    Advanced Statistical Indicators                        │ │  │
-│   │  │                                                                           │ │  │
-│   │  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐        │ │  │
-│   │  │  │ Hurst   │  │ Kalman  │  │ Cointe- │  │ Jump    │  │ Realized│        │ │  │
-│   │  │  │ Exponent│  │ Filter  │  │ gration │  │ Diffus. │  │ Vol     │        │ │  │
-│   │  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘        │ │  │
-│   │  │                                                                           │ │  │
-│   │  └───────────────────────────────────────────────────────────────────────────┘ │  │
-│   │                                                                                 │  │
-│   │  ┌───────────────────────────────────────────────────────────────────────────┐ │  │
-│   │  │                    Simulation & Scenario Analysis                         │ │  │
-│   │  │                                                                           │ │  │
-│   │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                    │ │  │
-│   │  │  │ Monte Carlo  │  │ Stress       │  │ Scenario     │                    │ │  │
-│   │  │  │ Simulation   │  │ Testing      │  │ Generator    │                    │ │  │
-│   │  │  └──────────────┘  └──────────────┘  └──────────────┘                    │ │  │
-│   │  │                                                                           │ │  │
-│   │  └───────────────────────────────────────────────────────────────────────────┘ │  │
-│   │                                                                                 │  │
-│   └─────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                         │
-│   ┌─────────────────────────────────────────────────────────────────────────────────┐  │
-│   │                         Output Layer                                            │  │
-│   │                                                                                 │  │
-│   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐           │  │
-│   │  │ gRPC API    │  │ Redis Pub   │  │ PostgreSQL  │  │ Prometheus  │           │  │
-│   │  │             │  │ (Signals)   │  │ (History)   │  │ (Metrics)   │           │  │
-│   │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘           │  │
-│   │                                                                                 │  │
-│   └─────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                         │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph bhQuant["bh-quant-engine"]
+        subgraph ingestion["Data Ingestion Layer"]
+            TickStream["Tick Stream (Redis)"]
+            BarStream["Bar Stream (Redis)"]
+            EconCal["Economic Calendar"]
+            Bloomberg["Bloomberg News Feed"]
+        end
+
+        subgraph models["Quantitative Models Engine"]
+            subgraph volatility["Volatility Forecasting Module"]
+                GARCH["GARCH (1,1)"]
+                EGARCH["EGARCH"]
+                TGARCH["TGARCH (GJR)"]
+                FIGARCH["FIGARCH"]
+                RSGARCH["RS-GARCH"]
+            end
+            subgraph timeseries["Time Series Analysis Module"]
+                ARIMA["ARIMA"]
+                SARIMA["SARIMA"]
+                VAR["VAR"]
+                VECM["VECM"]
+                StateSpace["State Space"]
+            end
+            subgraph indicators["Advanced Statistical Indicators"]
+                Hurst["Hurst Exponent"]
+                Kalman["Kalman Filter"]
+                Cointegration["Cointegration"]
+                JumpDiff["Jump Diffusion"]
+                RealizedVol["Realized Vol"]
+            end
+            subgraph simulation["Simulation & Scenario Analysis"]
+                MonteCarlo["Monte Carlo Simulation"]
+                StressTesting["Stress Testing"]
+                ScenarioGen["Scenario Generator"]
+            end
+        end
+
+        subgraph output["Output Layer"]
+            gRPCAPI["gRPC API"]
+            RedisPub["Redis Pub (Signals)"]
+            PostgreSQL["PostgreSQL (History)"]
+            Prometheus["Prometheus (Metrics)"]
+        end
+
+        ingestion --> models
+        models --> output
+    end
 ```
 
 ## Quantitative Models
