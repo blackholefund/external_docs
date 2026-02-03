@@ -23,7 +23,7 @@ flowchart TB
             TickStream["Tick Stream (Redis)"]
             BarStream["Bar Stream (Redis)"]
             EconCal["Economic Calendar"]
-            Provider A["Provider A News Feed"]
+            ProviderA["Provider A News Feed"]
         end
 
         subgraph models["Quantitative Models Engine"]
