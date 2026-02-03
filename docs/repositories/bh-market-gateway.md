@@ -21,8 +21,8 @@
 flowchart TB
     subgraph gateway["bh-market-gateway"]
         subgraph connectors["Connector Layer"]
-            Provider A["Provider A Market Data API"]
-            Provider B["Provider B Market Data API"]
+            ProviderA["Provider A Market Data API"]
+            ProviderB["Provider B Market Data API"]
             Exchange["Exchange FIX Feeds"]
             NewsAPI["News API"]
         end
