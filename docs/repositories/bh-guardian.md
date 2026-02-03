@@ -11,7 +11,7 @@
 | **Language** | Rust 1.75+ |
 | **Async Runtime** | Tokio |
 | **Dependencies** | tonic (gRPC), redis-rs, tokio-postgres |
-| **Target Latency** | < 1ms decision time |
+| **Target Latency** | Sub-millisecond decision time (target under normal load) |
 
 ## Architecture
 
@@ -248,8 +248,8 @@ Multi-channel alerting for risk events.
 
 ```
 Alert Channels:
-├── PagerDuty     → On-call team (HALTED state)
-├── Slack         → Trading desk (REDUCED, CLOSING)
+├── On-call System     → On-call team (HALTED state)
+├── ChatOps         → Trading desk (REDUCED, CLOSING)
 ├── Email         → Risk committee (Daily summary)
 └── SMS           → Emergency contacts (HALTED state)
 

@@ -4,17 +4,17 @@
 
 BlackHole Fund is a quantitative trading operation specializing in **Gold (XAU/USD)** within the forex market. We manage capital through **PAMM (Percentage Allocation Management Module)** accounts, allowing investors to participate proportionally in our systematic trading strategies.
 
-Our trading systems operate across **two AWS regions** (London & Manchester) ensuring high availability, disaster recovery, and optimal latency to major liquidity providers.
+Our trading systems operate across **two data centers** (ld4 primary, ld5 DR) to support high availability, disaster recovery, and proximity to major liquidity providers.
 
 ## System Architecture
 
 ```mermaid
 flowchart TB
     subgraph External["External Data Sources"]
-        Bloomberg["Bloomberg B-PIPE"]
-        Reuters["Reuters Elektron"]
+        Premium["Licensed Market Data\n(Price/Depth)"]
         Exchanges["Exchange Feeds\n(LBMA, COMEX, ICE)"]
         News["News & Events API"]
+        Alt["Alternative Data\n(Options/COT)"]
     end
 
     subgraph Gateway["Market Gateway Layer"]
@@ -44,10 +44,10 @@ flowchart TB
         MT5["MT5 Broker\n(Low Latency Deploy)"]
     end
 
-    Bloomberg --> MG
-    Reuters --> MG
+    Premium --> MG
     Exchanges --> MG
     News --> MG
+    Alt --> MG
 
     MG --> MT5T
     MG --> Quant
@@ -71,21 +71,21 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    subgraph London["AWS eu-west-2 (London)"]
-        L_EKS["EKS Cluster\n(Primary)"]
+    subgraph LD4["ld4 (Primary)"]
+        L_EKS["Kubernetes Cluster\n(Primary)"]
         L_DB["Database\n(Primary)"]
         L_Broker["Broker Deploy\n(Near LP)"]
     end
 
-    subgraph Manchester["AWS eu-west-1 (Manchester)"]
-        M_EKS["EKS Cluster\n(DR)"]
-        M_DB["Database\n(Replica)"]
-        M_Broker["Broker Deploy\n(Near LP)"]
+    subgraph LD5["ld5 (DR)"]
+        D_EKS["Kubernetes Cluster\n(DR)"]
+        D_DB["Database\n(Replica)"]
+        D_Broker["Broker Deploy\n(Near LP)"]
     end
 
-    L_EKS <-->|"Cross-Region Sync"| M_EKS
-    L_DB <-->|"Async Replication"| M_DB
-    L_Broker <-->|"Failover"| M_Broker
+    L_EKS <-->|"Cross-Region Sync"| D_EKS
+    L_DB <-->|"Async Replication"| D_DB
+    L_Broker <-->|"Failover"| D_Broker
 ```
 
 ## Core Repositories
@@ -212,8 +212,8 @@ flowchart LR
 - Multi-level risk controls (order, account, portfolio)
 
 ### Infrastructure
-- **Dual-region AWS deployment** for high availability
-- **~5ms execution latency** (deployed near liquidity providers)
+- **Dual-site deployment** for high availability
+- **Low-latency execution targets** (deployed near liquidity providers; actual latency depends on broker/venue)
 - Automated failover and disaster recovery
 - Comprehensive monitoring and alerting
 
@@ -242,7 +242,7 @@ flowchart LR
 | **Quantitative** | Python 3.11+, NumPy, SciPy, Arch, Statsmodels, Scikit-learn |
 | **Messaging** | ZeroMQ, Redis Streams, Apache Kafka |
 | **Databases** | TimescaleDB, PostgreSQL, Redis, InfluxDB |
-| **Infrastructure** | AWS EKS, Terraform, Prometheus, Grafana |
+| **Infrastructure** | Kubernetes, Terraform, Prometheus, Grafana |
 
 ## Security
 

@@ -4,8 +4,8 @@
 
 BlackHole Fund's trading infrastructure follows a **microservices architecture** optimized for:
 
-- **Low Latency**: ~5ms end-to-end execution
-- **High Availability**: 99.99% uptime SLA
+- **Low Latency**: Single-digit millisecond targets under normal market conditions
+- **High Availability**: Availability targets with active monitoring and failover
 - **Scalability**: Horizontal scaling for market data processing
 - **Resilience**: Multiple layers of failover protection
 
@@ -14,11 +14,11 @@ BlackHole Fund's trading infrastructure follows a **microservices architecture**
 ```mermaid
 flowchart TB
     subgraph DNS["Global DNS Layer"]
-        R53["Route 53\nLatency-Based Routing"]
+        R53["Global Traffic Manager\nLatency-Based Routing"]
     end
 
-    subgraph London["AWS eu-west-2 (London) - Primary"]
-        subgraph L_EKS["EKS Cluster"]
+    subgraph LD4["ld4 (Primary)"]
+        subgraph L_EKS["Kubernetes Cluster"]
             L_Core["bh-core"]
             L_Risk["bh-risk"]
             L_Quant["bh-quant-engine"]
@@ -35,8 +35,8 @@ flowchart TB
         end
     end
 
-    subgraph Manchester["AWS eu-west-1 (Manchester) - DR"]
-        subgraph M_EKS["EKS Cluster"]
+    subgraph LD5["ld5 (DR)"]
+        subgraph M_EKS["Kubernetes Cluster"]
             M_Core["bh-core"]
             M_Risk["bh-risk"]
             M_Quant["bh-quant-engine"]
@@ -68,25 +68,25 @@ Services that directly interface with external markets and brokers.
 
 | Service | Location | Latency Target |
 |---------|----------|----------------|
-| mt5_executor | Near LP | < 5ms |
-| mt5_tick | Near LP | < 5ms |
-| bh-market-gateway | AWS | < 10ms |
+| mt5_executor | Near LP | Single-digit ms (target) |
+| mt5_tick | Near LP | Single-digit ms (target) |
+| bh-market-gateway | Core DC | Low-latency target |
 
 ### Tier 2: Intelligence Layer
 Services that process data and make trading decisions.
 
 | Service | Location | Processing Window |
 |---------|----------|-------------------|
-| bh-quant-engine | AWS | 100ms - 5min |
-| bh-risk | AWS | < 15ms |
-| bh-guardian | AWS | < 5ms |
+| bh-quant-engine | Core DC | 100ms - 5min (model-dependent) |
+| bh-risk | Core DC | Low-latency target |
+| bh-guardian | Core DC | Low-latency target |
 
 ### Tier 3: Orchestration Layer
 Services that coordinate system operations.
 
 | Service | Location | Role |
 |---------|----------|------|
-| bh-core | AWS | Central coordination |
+| bh-core | Core DC | Central coordination |
 
 ## Data Flow Architecture
 
@@ -95,8 +95,7 @@ Services that coordinate system operations.
 ```mermaid
 flowchart LR
     subgraph Sources["External Sources"]
-        Bloomberg["Bloomberg"]
-        Reuters["Reuters"]
+        Premium["Licensed Providers"]
         Exchanges["Exchanges"]
     end
 
@@ -119,8 +118,7 @@ flowchart LR
         TS["TimescaleDB"]
     end
 
-    Bloomberg --> MG
-    Reuters --> MG
+    Premium --> MG
     Exchanges --> MG
 
     MG --> Redis
@@ -185,12 +183,12 @@ flowchart TB
 
 ### Active-Active Configuration
 
-Both AWS regions operate in **active-active** mode:
+Both data centers operate in **active-active** mode:
 
-1. **Traffic Distribution**: Route 53 latency-based routing
+1. **Traffic Distribution**: Global traffic manager with latency-based routing
 2. **State Synchronization**: Redis Cluster with cross-region replication
 3. **Database**: TimescaleDB with streaming replication
-4. **Failover Time**: < 30 seconds automatic failover
+4. **Failover Time**: Targeted sub-minute automatic failover
 
 ### Failure Scenarios
 
@@ -207,7 +205,7 @@ Both AWS regions operate in **active-active** mode:
 
 ```mermaid
 flowchart TB
-    subgraph VPC["VPC (10.0.0.0/16)"]
+    subgraph VPC["Private Network (10.0.0.0/16)"]
         subgraph Private["Private Subnet (10.0.1.0/24)"]
             Core["bh-core"]
             Risk["bh-risk"]
@@ -232,10 +230,10 @@ flowchart TB
 
 | Connection | Protocol | Security |
 |------------|----------|----------|
-| Bloomberg API | REST/WebSocket | mTLS + API Key |
+| Market Data APIs | REST/WebSocket | mTLS + API Key |
 | Exchange Feeds | FIX 4.4 | VPN + mTLS |
 | MT5 Broker | MT5 Protocol | Encrypted Channel |
-| Cross-Region | AWS PrivateLink | VPC Peering + TLS |
+| Cross-Region | Private Interconnect | Encrypted routing + TLS |
 
 ## Monitoring & Observability
 
@@ -254,8 +252,8 @@ flowchart LR
     end
 
     subgraph Alerting["Alerting"]
-        PD["PagerDuty"]
-        Slack["Slack"]
+        OnCall["On-Call System"]
+        ChatOps["ChatOps"]
     end
 
     S1 --> Prom
@@ -265,8 +263,8 @@ flowchart LR
     Prom --> Graf
     Prom --> Alert
 
-    Alert --> PD
-    Alert --> Slack
+    Alert --> OnCall
+    Alert --> ChatOps
 ```
 
 ### Key Metrics Monitored
@@ -282,10 +280,10 @@ flowchart LR
 
 | System | RPO | RTO |
 |--------|-----|-----|
-| Trading Core | 0 (synchronous) | < 30s |
+| Trading Core | Near-zero (synchronous) | Sub-minute target |
 | Market Data | < 1s | < 60s |
 | Analytics | < 5min | < 5min |
-| Audit Logs | 0 | < 1min |
+| Audit Logs | Near-zero | < 1min |
 
 ### Backup Strategy
 
@@ -302,7 +300,7 @@ Our execution components (mt5_executor, mt5_tick) are deployed **as close as pos
 
 ```mermaid
 flowchart LR
-    subgraph AWS["AWS Region"]
+    subgraph DC["Core Data Center"]
         Core["Core Services"]
     end
 
@@ -314,11 +312,11 @@ flowchart LR
         MT5["MT5 Server"]
     end
 
-    Core <-->|"~2-3ms"| Exec
-    Exec <-->|"~1-2ms"| MT5
+    Core <-->|"Low single-digit ms (target)"| Exec
+    Exec <-->|"Low single-digit ms (target)"| MT5
 ```
 
 This architecture ensures:
 - **Minimal network hops** between execution and broker
-- **~5ms total execution latency** from signal to fill
+- **Single-digit ms total execution latency target** from signal to fill (venue dependent)
 - **Geographic proximity** to gold market liquidity

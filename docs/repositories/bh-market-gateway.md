@@ -4,6 +4,8 @@
 
 **bh-market-gateway** is the market data connector service that interfaces with external data providers, exchanges, and news feeds. Written in Go with performance-critical components in Rust, it normalizes data from multiple sources into a unified format for consumption by other BlackHole services.
 
+**Note:** Provider names are placeholders (Provider A/Provider B). Replace with contracted vendors and adjust specs/SLAs accordingly.
+
 ## Technical Specifications
 
 | Attribute | Value |
@@ -11,7 +13,7 @@
 | **Language** | Go 1.22+ (Core), Rust (FIX Engine) |
 | **Protocols** | FIX 4.4, WebSocket, REST, gRPC |
 | **Dependencies** | quickfix, tokio, redis, kafka |
-| **Supported Sources** | Bloomberg, Reuters, Exchange feeds |
+| **Supported Sources** | Provider A, Provider B, Exchange feeds |
 
 ## Architecture
 
@@ -19,8 +21,8 @@
 flowchart TB
     subgraph gateway["bh-market-gateway"]
         subgraph connectors["Connector Layer"]
-            Bloomberg["Bloomberg B-PIPE"]
-            Reuters["Reuters Elektron"]
+            ProviderA["Provider A Market Data API"]
+            ProviderB["Provider B Market Data API"]
             Exchange["Exchange FIX Feeds"]
             NewsAPI["News API"]
         end
@@ -68,13 +70,13 @@ flowchart TB
 
 ## Data Sources
 
-### 1. Bloomberg B-PIPE
+### 1. Provider A Market Data API
 
 Primary institutional data feed for real-time and reference data.
 
 | Data Type | Update Frequency | Latency |
 |-----------|------------------|---------|
-| Spot prices | Real-time | < 5ms |
+| Spot prices | Real-time | Low-latency target |
 | Reference data | Daily | N/A |
 | Corporate actions | Event-driven | < 1min |
 | Economic indicators | Event-driven | < 1s |
@@ -92,7 +94,7 @@ Exchange Connections:
 └── CME (Chicago)      FX futures
 ```
 
-### 3. Reuters Elektron
+### 3. Provider B Market Data API
 
 Backup data feed and additional market coverage.
 
@@ -100,8 +102,8 @@ Backup data feed and additional market coverage.
 
 ```
 News Sources:
-├── Bloomberg News     Priority: 1 (fastest)
-├── Reuters News       Priority: 2
+├── Provider A News     Priority: 1 (fastest)
+├── Provider B News       Priority: 2
 ├── Dow Jones          Priority: 3
 └── Economic Calendar  Priority: 1
 
@@ -116,18 +118,18 @@ Event Types Monitored:
 
 ## Connector Implementations
 
-### Bloomberg Connector
+### Provider A Connector
 
 ```go
-type BloombergConnector struct {
-    session    *blpapi.Session
+type ProviderAConnector struct {
+    session    *providerapi.Session
     subscriptions map[string]*Subscription
     normalizer *PriceNormalizer
 }
 
-func (c *BloombergConnector) Subscribe(symbols []string) error {
+func (c *ProviderAConnector) Subscribe(symbols []string) error {
     for _, symbol := range symbols {
-        sub := &blpapi.Subscription{
+        sub := &providerapi.Subscription{
             Security: symbol,
             Fields:   []string{"BID", "ASK", "LAST_PRICE", "VOLUME"},
         }
@@ -136,11 +138,11 @@ func (c *BloombergConnector) Subscribe(symbols []string) error {
     return nil
 }
 
-func (c *BloombergConnector) handleEvent(event *blpapi.Event) {
+func (c *ProviderAConnector) handleEvent(event *providerapi.Event) {
     switch event.EventType {
-    case blpapi.SUBSCRIPTION_DATA:
+    case providerapi.SUBSCRIPTION_DATA:
         c.processMarketData(event)
-    case blpapi.SUBSCRIPTION_STATUS:
+    case providerapi.SUBSCRIPTION_STATUS:
         c.handleStatusChange(event)
     }
 }
@@ -186,8 +188,8 @@ Unified symbol mapping across all data sources:
 ```yaml
 # symbol_mapping.yaml
 XAUUSD:
-  bloomberg: "XAU Curncy"
-  reuters: "XAU="
+  provider_a: "XAUUSD-SPOT"
+  provider_b: "XAUUSD"
   comex: "GC"
   internal: "XAUUSD"
   description: "Gold Spot USD"
@@ -196,8 +198,8 @@ XAUUSD:
   currency: "USD"
 
 DXY:
-  bloomberg: "DXY Index"
-  reuters: ".DXY"
+  provider_a: "DXY-INDEX"
+  provider_b: "DXY"
   internal: "DXY"
   description: "US Dollar Index"
 ```
@@ -289,24 +291,24 @@ server:
   metrics_port: 9095
 
 connectors:
-  bloomberg:
+  provider_a:
     enabled: true
-    host: "bloomberg-api.internal"
+    host: "provider-a-api.internal"
     port: 8194
     app_name: "blackhole_gateway"
     symbols:
-      - "XAU Curncy"
-      - "DXY Index"
-      - "GC1 Comdty"
+      - "XAUUSD-SPOT"
+      - "DXY-INDEX"
+      - "GC1-FUT"
     reconnect_interval: 5s
 
-  reuters:
+  provider_b:
     enabled: true
-    host: "reuters-elektron.internal"
+    host: "provider-b-feed.internal"
     port: 14002
-    app_id: ${REUTERS_APP_ID}
+    app_id: ${PROVIDER_B_APP_ID}
     symbols:
-      - "XAU="
+      - "XAUUSD"
 
   fix:
     enabled: true
@@ -321,7 +323,7 @@ connectors:
 
   news:
     enabled: true
-    bloomberg_news:
+    provider_a_news:
       enabled: true
       topics: ["GOLD", "PRECIOUS_METALS", "FED", "RATES"]
     economic_calendar:
@@ -335,8 +337,8 @@ normalization:
 
 aggregation:
   source_weights:
-    bloomberg: 1.0
-    reuters: 0.8
+    provider_a: 1.0
+    provider_b: 0.8
     comex: 1.0
   update_interval: 10ms
 
@@ -367,7 +369,7 @@ monitoring:
 Topics:
 ├── PRICE.XAUUSD           Raw prices from all sources
 ├── PRICE.XAUUSD.BEST      Aggregated best price
-├── PRICE.XAUUSD.BLOOMBERG Single source
+├── PRICE.XAUUSD.PROVIDER_A Single source
 └── PRICE.XAUUSD.COMEX     Single source
 ```
 
@@ -394,7 +396,7 @@ Streams:
     "mid": 2035.55,
     "spread": 0.20,
     "timestamp": "2024-01-15T10:30:00.123456Z",
-    "source": "bloomberg",
+    "source": "provider_a",
     "source_latency_us": 1234,
     "sequence": 123456789
   }
@@ -407,7 +409,7 @@ Streams:
 
 ```
 # Connector metrics
-bh_gateway_connected{source="bloomberg|reuters|comex"}
+bh_gateway_connected{source="provider_a|provider_b|comex"}
 bh_gateway_messages_received_total{source="...",type="price|news|status"}
 bh_gateway_latency_seconds{source="...",quantile="0.5|0.95|0.99"}
 
@@ -425,7 +427,7 @@ bh_gateway_publish_latency_seconds{channel="..."}
 
 ```mermaid
 flowchart TD
-    Primary["Primary: Bloomberg B-PIPE"] -->|failure detected| Secondary["Secondary: Reuters Elektron"]
+    Primary["Primary: Provider A Market Data API"] -->|failure detected| Secondary["Secondary: Provider B Market Data API"]
     Secondary -->|failure detected| Tertiary["Tertiary: Exchange Direct (COMEX)"]
     Tertiary -->|all sources failed| Alert["ALERT: Trading paused - no market data"]
 ```
@@ -442,16 +444,16 @@ Failover Criteria:
 
 ```yaml
 # Per-source authentication
-bloomberg:
+provider_a:
   auth_type: "certificate"
-  cert_file: "/etc/ssl/bloomberg.pem"
-  key_file: "/etc/ssl/bloomberg.key"
+  cert_file: "/etc/ssl/provider-a.pem"
+  key_file: "/etc/ssl/provider-a.key"
 
-reuters:
+provider_b:
   auth_type: "oauth2"
-  token_url: "https://auth.refinitiv.com/token"
-  client_id: ${REUTERS_CLIENT_ID}
-  client_secret: ${REUTERS_CLIENT_SECRET}
+  token_url: "https://auth.provider-b.com/token"
+  client_id: ${PROVIDER_B_CLIENT_ID}
+  client_secret: ${PROVIDER_B_CLIENT_SECRET}
 
 fix:
   auth_type: "fix_login"

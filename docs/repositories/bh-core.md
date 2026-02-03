@@ -154,16 +154,16 @@ Manages service registration and health monitoring via Consul.
 
 ```
 Service Registry:
-├── mt5-tick-primary      health: passing   zone: eu-west-2a
-├── mt5-tick-backup       health: passing   zone: eu-west-2b
-├── mt5-executor-primary  health: passing   zone: eu-west-2a
-├── mt5-executor-backup   health: passing   zone: eu-west-2b
-├── bh-risk-1             health: passing   zone: eu-west-2a
-├── bh-risk-2             health: passing   zone: eu-west-2b
-├── bh-guardian-1         health: passing   zone: eu-west-2a
-├── bh-guardian-2         health: passing   zone: eu-west-2b
-├── bh-quant-1            health: passing   zone: eu-west-2a
-└── bh-quant-2            health: passing   zone: eu-west-2b
+├── mt5-tick-primary      health: passing   zone: ld4-a
+├── mt5-tick-backup       health: passing   zone: ld4-b
+├── mt5-executor-primary  health: passing   zone: ld4-a
+├── mt5-executor-backup   health: passing   zone: ld4-b
+├── bh-risk-1             health: passing   zone: ld4-a
+├── bh-risk-2             health: passing   zone: ld4-b
+├── bh-guardian-1         health: passing   zone: ld4-a
+├── bh-guardian-2         health: passing   zone: ld4-b
+├── bh-quant-1            health: passing   zone: ld4-a
+└── bh-quant-2            health: passing   zone: ld4-b
 ```
 
 ### 4. Configuration Manager
@@ -334,7 +334,7 @@ monitoring:
 
 ```mermaid
 flowchart TD
-    LB["Load Balancer (AWS ALB)"]
+    LB["Load Balancer (L7)"]
     LB --> CoreA["bh-core (AZ-a)"]
     LB --> CoreB["bh-core (AZ-b)"]
     LB --> CoreC["bh-core (AZ-c)"]

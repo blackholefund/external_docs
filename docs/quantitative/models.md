@@ -428,7 +428,7 @@ NLP-based news analysis.
 | Parameter | Value |
 |-----------|-------|
 | Weight | 2% |
-| Sources | Bloomberg, Reuters |
+| Sources | Provider A, Provider B |
 | Model | FinBERT |
 | Lag | 15-minute aggregation |
 
