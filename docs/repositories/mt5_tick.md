@@ -12,7 +12,7 @@
 | **Build System** | CMake 3.25+ |
 | **Compiler** | GCC 13+ / Clang 17+ |
 | **Dependencies** | ZeroMQ, Boost, MT5 API SDK, HdrHistogram |
-| **Target Latency** | < 1ms tick distribution |
+| **Target Latency** | Sub-millisecond tick distribution (target) |
 
 ## Architecture
 
@@ -181,12 +181,12 @@ monitoring:
 
 ## Performance Characteristics
 
-| Metric | Target | Typical |
-|--------|--------|---------|
-| Tick processing latency | < 0.5ms | 0.1-0.3ms |
-| Distribution latency | < 1ms | 0.5-0.8ms |
-| Throughput | > 100,000 ticks/sec | 150,000 ticks/sec |
-| Memory footprint | < 512MB | 256MB |
+| Metric | Target | Notes |
+|--------|--------|-------|
+| Tick processing latency | Sub-millisecond | Environment dependent |
+| Distribution latency | Sub-millisecond | Environment dependent |
+| Throughput | 100,000+ ticks/sec | Benchmark target |
+| Memory footprint | < 512MB | Typical profile varies by workload |
 
 ## Data Quality
 

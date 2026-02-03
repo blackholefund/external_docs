@@ -4,6 +4,8 @@
 
 BlackHole Fund's market connectivity infrastructure provides access to real-time market data, news feeds, and economic indicators from multiple institutional-grade sources. This document outlines our data provider ecosystem and connectivity architecture.
 
+**Note:** Provider names in this document use placeholders (Provider A/Provider B) and should be replaced with contracted vendors. Latency figures are targets and depend on venue and network conditions.
+
 ## Data Provider Ecosystem
 
 ```mermaid
@@ -13,16 +15,16 @@ flowchart TB
     end
 
     subgraph MarketData["MARKET DATA PROVIDERS"]
-        Bloomberg["Bloomberg"]
-        Reuters["Reuters"]
+        Provider A["Provider A"]
+        Provider B["Provider B"]
         LBMA["LBMA"]
         COMEX["COMEX"]
         ICE["ICE"]
     end
 
     subgraph News["NEWS & SENTIMENT"]
-        BBNews["Bloomberg News"]
-        ReutersNews["Reuters News"]
+        BBNews["Provider A News"]
+        ProviderBNews["Provider B News"]
         DowJones["Dow Jones"]
         Social["Social Sentiment"]
     end
@@ -41,24 +43,24 @@ flowchart TB
 
 ## Primary Data Sources
 
-### Bloomberg B-PIPE
+### Provider A Market Data API
 
 **Purpose**: Primary source for real-time and reference data
 
 | Data Type | Coverage | Update Frequency |
 |-----------|----------|------------------|
-| Spot prices | XAU/USD, XAG/USD | Real-time (< 5ms) |
+| Spot prices | XAU/USD, XAG/USD | Real-time (target) |
 | Futures | COMEX GC, SI | Real-time |
 | FX rates | Major pairs | Real-time |
 | Indices | DXY, VIX, SPX | Real-time |
 | Reference data | Symbology, corporate actions | Daily |
 
 **Connection Details**:
-- Protocol: Bloomberg B-PIPE API
+- Protocol: Provider A Market Data API
 - Redundancy: Dual feed handlers
-- Failover: Automatic (< 5s)
+- Failover: Automatic (target < 5s)
 
-### Reuters Elektron
+### Provider B Market Data API
 
 **Purpose**: Backup market data and additional coverage
 
@@ -70,7 +72,7 @@ flowchart TB
 | Fixed income | Rates, yields | Real-time |
 
 **Connection Details**:
-- Protocol: Elektron Real-Time (ERT)
+- Protocol: Vendor real-time API (RT)
 - Authentication: OAuth 2.0
 - Redundancy: Multi-region endpoints
 
@@ -99,7 +101,7 @@ flowchart TB
 **Connection**:
 - Protocol: FIX 4.4 / CME Market Data
 - Location: Near liquidity provider
-- Latency: < 5ms
+- Latency: Low-latency target
 
 ### ICE (Intercontinental Exchange)
 
@@ -132,7 +134,7 @@ flowchart TB
 
 ## News & Sentiment Feeds
 
-### Bloomberg News
+### Provider A News
 
 **Purpose**: Real-time market-moving news
 
@@ -148,7 +150,7 @@ flowchart TB
 - Natural language processing for sentiment
 - Event classification and tagging
 
-### Reuters News
+### Provider B News
 
 **Purpose**: Backup news source and additional coverage
 
@@ -165,7 +167,7 @@ flowchart TB
 ### Economic Calendar Integration
 
 **Sources**:
-- Bloomberg Economic Calendar
+- Provider A Economic Calendar
 - Investing.com Economic Calendar
 - FederalReserve.gov
 
@@ -185,8 +187,8 @@ flowchart TB
 ```mermaid
 flowchart LR
     subgraph External["EXTERNAL SOURCES"]
-        Bloomberg["Bloomberg"]
-        Reuters["Reuters"]
+        Provider A["Provider A"]
+        Provider B["Provider B"]
         Exchanges["Exchanges"]
         NewsAPIs["News APIs"]
     end
@@ -214,7 +216,7 @@ flowchart LR
 
 ## API Specifications
 
-### Bloomberg B-PIPE
+### Provider A Market Data API
 
 ```yaml
 connection:
@@ -305,8 +307,8 @@ news_api:
 
 ```mermaid
 flowchart LR
-    Bloomberg["Bloomberg Price"] --> Compare["Compare"]
-    Reuters["Reuters Price"] --> Compare
+    Provider A["Provider A Price"] --> Compare["Compare"]
+    Provider B["Provider B Price"] --> Compare
     Compare --> Check{"Diff > 0.5%?"}
     Check -->|Yes| Alert["Alert + Log"]
     Check -->|No| WeightedAvg["Weighted Average"]
@@ -318,9 +320,9 @@ flowchart LR
 
 | Source | Target Latency | Alert Threshold |
 |--------|----------------|-----------------|
-| Bloomberg | < 5ms | > 20ms |
-| Reuters | < 10ms | > 50ms |
-| COMEX FIX | < 5ms | > 20ms |
+| Provider A | Target < 5ms | > 20ms |
+| Provider B | Target < 10ms | > 50ms |
+| COMEX FIX | Target < 5ms | > 20ms |
 | News feeds | < 1s | > 5s |
 
 ## Failover Strategy
@@ -328,8 +330,8 @@ flowchart LR
 ```mermaid
 flowchart TD
     subgraph MarketData["MARKET DATA FAILOVER"]
-        T1["Tier 1: Bloomberg B-PIPE\n(Primary)"]
-        T2["Tier 2: Reuters Elektron\n(Secondary)"]
+        T1["Tier 1: Provider A Market Data API\n(Primary)"]
+        T2["Tier 2: Provider B Market Data API\n(Secondary)"]
         T3["Tier 3: Exchange Direct\n(Tertiary)"]
         Pause["TRADING PAUSE\nNo reliable data"]
     end
@@ -339,8 +341,8 @@ flowchart TD
     T3 -->|"All sources failed"| Pause
 
     subgraph NewsData["NEWS FAILOVER"]
-        N1["Tier 1: Bloomberg News"]
-        N2["Tier 2: Reuters News"]
+        N1["Tier 1: Provider A News"]
+        N2["Tier 2: Provider B News"]
         N3["Tier 3: Dow Jones"]
     end
 

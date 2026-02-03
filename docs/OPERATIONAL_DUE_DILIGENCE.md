@@ -17,7 +17,7 @@ flowchart TB
         Systems["Trading Systems\n& Infrastructure"]
     end
 
-    subgraph Broker["Broker (OneEquity)"]
+    subgraph Broker["Broker (Tier-1 regulated PAMM partner)"]
         PAMM["PAMM Platform"]
         Inv1["Investor Account 1"]
         Inv2["Investor Account 2"]
@@ -59,7 +59,7 @@ flowchart TB
 | Provider | Role |
 |----------|------|
 | **Tier 1 Liquidity** | Primary execution venue for gold |
-| **OneEquity** | PAMM platform and retail execution |
+| **Tier-1 regulated broker** | PAMM platform and execution (name provided on request/NDA) |
 
 ### Broker Features
 
@@ -74,8 +74,8 @@ flowchart TB
 
 | Service | Provider |
 |---------|----------|
-| Cloud Infrastructure | AWS (London + Manchester) |
-| Market Data | Bloomberg, Reuters |
+| Cloud Infrastructure | AWS (London + Ireland) |
+| Market Data | Licensed providers + exchange feeds |
 | Monitoring | Prometheus, Grafana |
 
 ## Technology & Infrastructure
@@ -95,7 +95,7 @@ flowchart TB
 |--------|--------|--------|
 | RTO (Recovery Time) | < 1 hour | Quarterly |
 | RPO (Recovery Point) | < 1 minute | Quarterly |
-| DR Site | Manchester (UK) | Active-passive |
+| DR Site | Ireland (EU) | Active-passive |
 
 ### Cybersecurity
 
@@ -104,7 +104,7 @@ flowchart TB
 | Access Control | Multi-factor authentication |
 | Encryption | TLS 1.3, AES-256 at rest |
 | Network Security | Firewalls, IDS/IPS, VPN |
-| Monitoring | 24/7 SOC monitoring |
+| Monitoring | Centralized logging with alerting |
 | Testing | Annual penetration testing |
 | Training | Quarterly security awareness |
 
@@ -116,6 +116,32 @@ flowchart TB
 | Key system failure | Automated failover |
 | Data loss | Real-time replication |
 | Personnel unavailable | Cross-training, documentation |
+
+### Change Management & SDLC
+
+| Control | Practice |
+|---------|----------|
+| Code Changes | Peer review and mandatory approvals |
+| Deployments | CI/CD with staged rollouts and rollback plans |
+| Configuration | Versioned, audited changes with change tickets |
+| Release Notes | Documented per release for strategy + infra updates |
+
+### Incident Response
+
+| Stage | Practice |
+|-------|----------|
+| Detection | Automated alerts and on-call escalation |
+| Triage | Severity classification within defined SLAs |
+| Remediation | Documented runbooks and post-incident review |
+| Communication | Investor updates for material incidents |
+
+### Data Governance
+
+| Area | Practice |
+|------|----------|
+| Data Lineage | Source attribution for market and alternative data |
+| Retention | Tiered retention with archival policies |
+| Access | Role-based permissions with audit logging |
 
 ## Trading Operations
 
@@ -198,7 +224,7 @@ flowchart TB
 
 ### Broker Regulation
 
-Your funds are held at OneEquity (or other supported broker), which maintains its own regulatory status. Please verify:
+Your funds are held at the broker you select (PAMM partner), which maintains its own regulatory status. Please verify:
 
 - Broker's regulatory registration
 - Client fund segregation policies
@@ -301,9 +327,7 @@ Before joining any PAMM, verify with your broker:
 
 ### Contact
 
-For questions about joining the PAMM:
-- Telegram: [Contact]
-- Email: [Contact]
+For questions about joining the PAMM, contact details are provided during onboarding or through the broker's referral process.
 
 ---
 

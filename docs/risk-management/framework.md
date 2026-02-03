@@ -254,7 +254,7 @@ sequenceDiagram
     Guardian->>Core: HALT Signal
     Core->>Executor: Cancel All Pending
     Guardian->>Guardian: Set State = HALTED
-    Guardian->>Guardian: Send Alerts (PagerDuty, Slack)
+    Guardian->>Guardian: Send Alerts (On-call System, ChatOps)
     Core->>Executor: Market Close All Positions
     Executor->>Broker: Close Orders
     Broker-->>Executor: Confirmations
@@ -276,10 +276,10 @@ Timeline:
 
 | Component | Primary | Backup | Failover Time |
 |-----------|---------|--------|---------------|
-| Execution | mt5_executor (Primary) | mt5_executor (DR) | < 5s |
-| Risk Engine | bh-risk (eu-west-2a) | bh-risk (eu-west-2b) | < 10s |
-| Circuit Breaker | bh-guardian (eu-west-2a) | bh-guardian (eu-west-2b) | < 5s |
-| Market Data | Bloomberg | Reuters | < 5s |
+| Execution | mt5_executor (Primary) | mt5_executor (DR) | Target < 5s |
+| Risk Engine | bh-risk (eu-west-2a) | bh-risk (eu-west-2b) | Target < 10s |
+| Circuit Breaker | bh-guardian (eu-west-2a) | bh-guardian (eu-west-2b) | Target < 5s |
+| Market Data | Provider A | Provider B | Target < 5s |
 
 ### Fail-Safe Defaults
 

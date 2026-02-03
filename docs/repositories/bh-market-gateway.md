@@ -4,6 +4,8 @@
 
 **bh-market-gateway** is the market data connector service that interfaces with external data providers, exchanges, and news feeds. Written in Go with performance-critical components in Rust, it normalizes data from multiple sources into a unified format for consumption by other BlackHole services.
 
+**Note:** Provider names are placeholders (Provider A/Provider B). Replace with contracted vendors and adjust specs/SLAs accordingly.
+
 ## Technical Specifications
 
 | Attribute | Value |
@@ -11,7 +13,7 @@
 | **Language** | Go 1.22+ (Core), Rust (FIX Engine) |
 | **Protocols** | FIX 4.4, WebSocket, REST, gRPC |
 | **Dependencies** | quickfix, tokio, redis, kafka |
-| **Supported Sources** | Bloomberg, Reuters, Exchange feeds |
+| **Supported Sources** | Provider A, Provider B, Exchange feeds |
 
 ## Architecture
 
@@ -19,8 +21,8 @@
 flowchart TB
     subgraph gateway["bh-market-gateway"]
         subgraph connectors["Connector Layer"]
-            Bloomberg["Bloomberg B-PIPE"]
-            Reuters["Reuters Elektron"]
+            Provider A["Provider A Market Data API"]
+            Provider B["Provider B Market Data API"]
             Exchange["Exchange FIX Feeds"]
             NewsAPI["News API"]
         end
@@ -68,13 +70,13 @@ flowchart TB
 
 ## Data Sources
 
-### 1. Bloomberg B-PIPE
+### 1. Provider A Market Data API
 
 Primary institutional data feed for real-time and reference data.
 
 | Data Type | Update Frequency | Latency |
 |-----------|------------------|---------|
-| Spot prices | Real-time | < 5ms |
+| Spot prices | Real-time | Low-latency target |
 | Reference data | Daily | N/A |
 | Corporate actions | Event-driven | < 1min |
 | Economic indicators | Event-driven | < 1s |
@@ -92,7 +94,7 @@ Exchange Connections:
 └── CME (Chicago)      FX futures
 ```
 
-### 3. Reuters Elektron
+### 3. Provider B Market Data API
 
 Backup data feed and additional market coverage.
 
@@ -100,8 +102,8 @@ Backup data feed and additional market coverage.
 
 ```
 News Sources:
-├── Bloomberg News     Priority: 1 (fastest)
-├── Reuters News       Priority: 2
+├── Provider A News     Priority: 1 (fastest)
+├── Provider B News       Priority: 2
 ├── Dow Jones          Priority: 3
 └── Economic Calendar  Priority: 1
 
@@ -116,16 +118,16 @@ Event Types Monitored:
 
 ## Connector Implementations
 
-### Bloomberg Connector
+### Provider A Connector
 
 ```go
-type BloombergConnector struct {
+type Provider AConnector struct {
     session    *blpapi.Session
     subscriptions map[string]*Subscription
     normalizer *PriceNormalizer
 }
 
-func (c *BloombergConnector) Subscribe(symbols []string) error {
+func (c *Provider AConnector) Subscribe(symbols []string) error {
     for _, symbol := range symbols {
         sub := &blpapi.Subscription{
             Security: symbol,
@@ -136,7 +138,7 @@ func (c *BloombergConnector) Subscribe(symbols []string) error {
     return nil
 }
 
-func (c *BloombergConnector) handleEvent(event *blpapi.Event) {
+func (c *Provider AConnector) handleEvent(event *blpapi.Event) {
     switch event.EventType {
     case blpapi.SUBSCRIPTION_DATA:
         c.processMarketData(event)
@@ -425,7 +427,7 @@ bh_gateway_publish_latency_seconds{channel="..."}
 
 ```mermaid
 flowchart TD
-    Primary["Primary: Bloomberg B-PIPE"] -->|failure detected| Secondary["Secondary: Reuters Elektron"]
+    Primary["Primary: Provider A Market Data API"] -->|failure detected| Secondary["Secondary: Provider B Market Data API"]
     Secondary -->|failure detected| Tertiary["Tertiary: Exchange Direct (COMEX)"]
     Tertiary -->|all sources failed| Alert["ALERT: Trading paused - no market data"]
 ```

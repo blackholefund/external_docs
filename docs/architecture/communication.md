@@ -8,13 +8,13 @@ BlackHole Fund's infrastructure utilizes a combination of communication protocol
 
 | Service | Protocol | Pattern | Latency |
 |---------|----------|---------|---------|
-| mt5_tick | ZeroMQ (PUB/SUB) | Publish-Subscribe | < 5ms |
-| mt5_executor | ZeroMQ (REQ/REP) | Request-Reply | < 5ms |
-| bh-risk | gRPC | Unary/Stream | < 15ms |
-| bh-guardian | gRPC + ZeroMQ | Hybrid | < 5ms |
-| bh-quant-engine | Redis Streams | Consumer Group | < 50ms |
-| bh-core | gRPC | Bidirectional | < 10ms |
-| bh-market-gateway | FIX + WebSocket | Various | < 20ms |
+| mt5_tick | ZeroMQ (PUB/SUB) | Publish-Subscribe | Low-latency target |
+| mt5_executor | ZeroMQ (REQ/REP) | Request-Reply | Low-latency target |
+| bh-risk | gRPC | Unary/Stream | Low-latency target |
+| bh-guardian | gRPC + ZeroMQ | Hybrid | Low-latency target |
+| bh-quant-engine | Redis Streams | Consumer Group | Low-latency target |
+| bh-core | gRPC | Bidirectional | Low-latency target |
+| bh-market-gateway | FIX + WebSocket | Various | Low-latency target |
 
 ## Service Communication Diagram
 

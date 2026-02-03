@@ -4,17 +4,17 @@
 
 BlackHole Fund is a quantitative trading operation specializing in **Gold (XAU/USD)** within the forex market. We manage capital through **PAMM (Percentage Allocation Management Module)** accounts, allowing investors to participate proportionally in our systematic trading strategies.
 
-Our trading systems operate across **two AWS regions** (London & Manchester) ensuring high availability, disaster recovery, and optimal latency to major liquidity providers.
+Our trading systems operate across **two AWS regions** (eu-west-2 London primary, eu-west-1 Ireland DR) to support high availability, disaster recovery, and proximity to major liquidity providers.
 
 ## System Architecture
 
 ```mermaid
 flowchart TB
     subgraph External["External Data Sources"]
-        Bloomberg["Bloomberg B-PIPE"]
-        Reuters["Reuters Elektron"]
+        Premium["Licensed Market Data\n(Price/Depth)"]
         Exchanges["Exchange Feeds\n(LBMA, COMEX, ICE)"]
         News["News & Events API"]
+        Alt["Alternative Data\n(Options/COT)"]
     end
 
     subgraph Gateway["Market Gateway Layer"]
@@ -44,10 +44,10 @@ flowchart TB
         MT5["MT5 Broker\n(Low Latency Deploy)"]
     end
 
-    Bloomberg --> MG
-    Reuters --> MG
+    Premium --> MG
     Exchanges --> MG
     News --> MG
+    Alt --> MG
 
     MG --> MT5T
     MG --> Quant
@@ -77,7 +77,7 @@ flowchart LR
         L_Broker["Broker Deploy\n(Near LP)"]
     end
 
-    subgraph Manchester["AWS eu-west-1 (Manchester)"]
+    subgraph Ireland["AWS eu-west-1 (Ireland)"]
         M_EKS["EKS Cluster\n(DR)"]
         M_DB["Database\n(Replica)"]
         M_Broker["Broker Deploy\n(Near LP)"]
@@ -213,7 +213,7 @@ flowchart LR
 
 ### Infrastructure
 - **Dual-region AWS deployment** for high availability
-- **~5ms execution latency** (deployed near liquidity providers)
+- **Low-latency execution targets** (deployed near liquidity providers; actual latency depends on broker/venue)
 - Automated failover and disaster recovery
 - Comprehensive monitoring and alerting
 

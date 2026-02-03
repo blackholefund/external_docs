@@ -12,7 +12,7 @@
 | **Build System** | CMake 3.25+ |
 | **Compiler** | GCC 13+ / Clang 17+ |
 | **Dependencies** | ZeroMQ, Boost, MT5 API SDK |
-| **Target Latency** | < 5ms order submission |
+| **Target Latency** | Low single-digit ms order submission (target) |
 
 ## Architecture
 
@@ -56,7 +56,7 @@ Lock-free SPSC (Single Producer Single Consumer) queue for minimal contention.
 
 - **Capacity**: 10,000 orders
 - **Memory**: Pre-allocated ring buffer
-- **Latency**: < 100ns enqueue/dequeue
+- **Latency**: Sub-microsecond enqueue/dequeue (target)
 
 ### 3. Order Processor
 
@@ -127,12 +127,12 @@ monitoring:
 
 ## Performance Characteristics
 
-| Metric | Target | Typical |
-|--------|--------|---------|
-| Order submission latency | < 5ms | 2-4ms |
-| Throughput | > 10,000 orders/sec | 15,000 orders/sec |
-| Memory footprint | < 256MB | 128MB |
-| CPU usage (idle) | < 5% | 2% |
+| Metric | Target | Notes |
+|--------|--------|-------|
+| Order submission latency | Low single-digit ms | Environment and broker dependent |
+| Throughput | 10,000+ orders/sec | Benchmark target; validate in staging |
+| Memory footprint | < 256MB | Typical profile varies by build flags |
+| CPU usage (idle) | < 5% | Baseline for healthy node |
 
 ## Error Handling
 

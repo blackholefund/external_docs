@@ -56,7 +56,7 @@ flowchart TB
 
 | Metric | Target | Notes |
 |--------|--------|-------|
-| **Annual Return** | 12-18% | Realistic for systematic gold |
+| **Annual Return** | 12-18% | Target range, not a guarantee |
 | **Sharpe Ratio** | 1.2 - 1.8 | Risk-adjusted focus |
 | **Max Drawdown** | < 15% | Hard limit enforced |
 | **Win Rate** | 45-55% | Not dependent on high hit rate |
@@ -87,14 +87,14 @@ flowchart LR
 
 | Provider | Role |
 |----------|------|
-| **Tier 1 Liquidity** | Primary execution venue |
-| **OneEquity** | PAMM platform & execution |
+| **Tier-1 regulated broker** | PAMM platform & execution (name provided on request/NDA) |
+| **Liquidity venues** | Broker-aggregated gold liquidity |
 
 ### Technology
 
-- **Dual-region deployment** (London + Manchester)
-- **~5-10ms execution latency**
-- **99.9% uptime target**
+- **Dual-region deployment** (London + Ireland)
+- **Low-latency execution targets** (single-digit ms under normal conditions)
+- **99.9% uptime target** (measured monthly)
 - **Automated failover**
 
 ## Fee Structure
@@ -118,7 +118,7 @@ flowchart LR
 
 ### How to Invest
 
-1. **Open account** at OneEquity (or supported broker)
+1. **Open account** at the PAMM broker partner (details provided during onboarding)
 2. **Fund your account** via bank transfer or other methods
 3. **Connect to PAMM** using our master account ID
 4. **Monitor performance** through broker platform
@@ -142,9 +142,7 @@ flowchart LR
 
 ## Contact
 
-For more information about joining the PAMM:
-- Telegram: [Contact]
-- Email: [Contact]
+For more information about joining the PAMM, contact details are provided during onboarding or through the broker's referral process.
 
 ---
 

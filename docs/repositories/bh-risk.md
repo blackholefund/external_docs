@@ -11,7 +11,7 @@
 | **Language** | Go 1.22+ |
 | **Framework** | gRPC, Redis, PostgreSQL |
 | **Dependencies** | gonum, decimal, prometheus |
-| **Target Latency** | < 10ms risk evaluation |
+| **Target Latency** | Low-latency risk evaluation (target) |
 
 ## Architecture
 
