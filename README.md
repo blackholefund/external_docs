@@ -1,20 +1,24 @@
-# BlackHole Fund - Trading Infrastructure
+# Genese Capital (formerly BlackHole Capital) - Trading Infrastructure
+
+> **Documentation status:** last reviewed September 2026.
+>
+> - **Performance:** this repository does not report performance. The live track record is published on Myfxbook: [myfxbook.com/members/blackholeai/blackhole-fund/11784758](https://www.myfxbook.com/members/blackholeai/blackhole-fund/11784758). The Myfxbook record still uses the BlackHole name.
+> - **Due diligence:** the current *Genese Capital - Due Diligence Reference* is available on request.
+> - Component names (`bh-core`, `bh-risk`, `bh-guardian`, etc.) and this repository keep their original BlackHole naming.
 
 ## Overview
 
-BlackHole Fund is a quantitative trading operation specializing in **Gold (XAU/USD)** within the forex market. We manage capital through **PAMM (Percentage Allocation Management Module)** accounts, allowing investors to participate proportionally in our systematic trading strategies.
+Genese Capital (formerly BlackHole Capital) runs a systematic, intraday strategy trading **gold only (XAUUSD)**. Client capital is managed through **PAMM (Percentage Allocation Management Module)** accounts at OnEquity Ltd, which acts as broker, execution venue and custodian. Genese owns the strategy, manages the PAMM accounts, controls risk and operates the infrastructure; it does not hold client funds at any time.
 
-Our trading systems operate across **two data centers** (Primary EU, DR EU) to support high availability, disaster recovery, and proximity to major liquidity providers.
+The proprietary infrastructure is deployed across **two European data centres** (primary and disaster recovery) with automatic failover.
 
 ## System Architecture
 
 ```mermaid
 flowchart TB
     subgraph External["External Data Sources"]
-        Premium["Licensed Market Data\n(Price/Depth)"]
-        Exchanges["Exchange Feeds\n(LBMA, COMEX, ICE)"]
-        News["News & Events API"]
-        Alt["Alternative Data\n(Options/COT)"]
+        MarketData["Market Data\n(cross-validated sources)"]
+        News["Economic Calendar\n& News API"]
     end
 
     subgraph Gateway["Market Gateway Layer"]
@@ -33,21 +37,12 @@ flowchart TB
         Executor["mt5_executor\n[C++]"]
     end
 
-    subgraph Data["Database Layer"]
-        Timescale["TimescaleDB\n(Tick Data)"]
-        Redis["Redis\n(Cache/Streams)"]
-        Postgres["PostgreSQL\n(Analytics)"]
-        Influx["InfluxDB\n(Metrics)"]
-    end
-
     subgraph Broker["Broker Connection"]
-        MT5["MT5 Broker\n(Low Latency Deploy)"]
+        MT5["OnEquity MT5\n(primary London,\nsecondary Amsterdam)"]
     end
 
-    Premium --> MG
-    Exchanges --> MG
+    MarketData --> MG
     News --> MG
-    Alt --> MG
 
     MG --> MT5T
     MG --> Quant
@@ -61,169 +56,80 @@ flowchart TB
     Risk --> Guardian
     Guardian --> Executor
     Executor --> MT5
-
-    Orchestrator --> Data
-    Risk --> Data
-    Quant --> Data
 ```
 
-## Multi-Region Deployment
+## Dual-Site Deployment
 
 ```mermaid
 flowchart LR
-    subgraph LD4["ld4 (Primary)"]
-        L_EKS["Kubernetes Cluster\n(Primary)"]
-        L_DB["Database\n(Primary)"]
-        L_Broker["Broker Deploy\n(Near LP)"]
+    subgraph Primary["Primary Data Centre (EU)"]
+        P["Genese components"]
     end
 
-    subgraph DR["DR Site (EU)"]
-        D_EKS["Kubernetes Cluster\n(DR)"]
-        D_DB["Database\n(Replica)"]
-        D_Broker["Broker Deploy\n(Near LP)"]
+    subgraph DR["Disaster-Recovery Data Centre (EU)"]
+        D["Genese components"]
     end
 
-    L_EKS <-->|"Cross-Region Sync"| D_EKS
-    L_DB <-->|"Async Replication"| D_DB
-    L_Broker <-->|"Failover"| D_Broker
+    subgraph Broker["OnEquity"]
+        London["Primary server (London)"]
+        Amsterdam["Secondary server (Amsterdam)"]
+    end
+
+    P <-->|"Automatic failover"| D
+    P -->|"Heartbeat every second"| London
+    P -.->|"If London unavailable"| Amsterdam
 ```
 
 ## Core Repositories
 
 | Repository | Language | Description |
 |------------|----------|-------------|
-| [mt5_executor](docs/repositories/mt5_executor.md) | C++ | High-performance order execution engine |
-| [mt5_tick](docs/repositories/mt5_tick.md) | C++ | Real-time tick data processor |
-| [bh-risk](docs/repositories/bh-risk.md) | Go | Risk management and position sizing engine |
-| [bh-guardian](docs/repositories/bh-guardian.md) | Rust | Daily circuit breaker and system protection |
-| [bh-quant-engine](docs/repositories/bh-quant-engine.md) | Python | Quantitative analysis and signal generation |
-| [bh-core](docs/repositories/bh-core.md) | Go | Central orchestration and service coordination |
-| [bh-market-gateway](docs/repositories/bh-market-gateway.md) | Go/Rust | Market data connectors and feed handlers |
+| [mt5_executor](docs/repositories/mt5_executor.md) | C++ | Order execution |
+| [mt5_tick](docs/repositories/mt5_tick.md) | C++ | Tick processing |
+| [bh-risk](docs/repositories/bh-risk.md) | Go | Risk and position sizing |
+| [bh-guardian](docs/repositories/bh-guardian.md) | Rust | Circuit breaker and protection |
+| [bh-quant-engine](docs/repositories/bh-quant-engine.md) | Python | Quantitative analysis and signals |
+| [bh-core](docs/repositories/bh-core.md) | Go | Orchestration |
+| [bh-market-gateway](docs/repositories/bh-market-gateway.md) | Go/Rust | Market data |
 
 ## Quantitative Decision Engine
 
-Our trading decisions are driven by a sophisticated **multi-indicator weighted scoring system**. Each quantitative indicator contributes to the final trading decision with configurable weights and thresholds.
+Trading decisions come from a **multi-factor scoring system with ensemble methods and regime-adaptive weighting**. Factor composition, weights and refresh frequencies are proprietary and are not disclosed.
 
-```mermaid
-flowchart TB
-    subgraph Indicators["Quantitative Indicators (20+)"]
-        direction TB
-        Vol["Volatility Models\n(GARCH Family)"]
-        Regime["Regime Detection\n(HMM, Markov)"]
-        Mean["Mean Reversion\n(Hurst, OU Process)"]
-        Momentum["Momentum\n(Spectral, Wavelets)"]
-        Risk["Risk Metrics\n(VaR, CVaR, Greeks)"]
-        Micro["Microstructure\n(Order Flow, Toxicity)"]
-    end
-
-    subgraph Weights["Weight & Scoring Engine"]
-        Scorer["Indicator Scorer\nw1, w2, ... wn"]
-        Agg["Score Aggregator\nΣ(wi × si)"]
-        Conf["Confidence Calculator"]
-    end
-
-    subgraph Decision["Decision Matrix"]
-        Entry["Entry Signal\n(Long/Short/Neutral)"]
-        Size["Position Sizing\n(Kelly/Vol-Adjusted)"]
-        Exit["Exit Rules\n(TP/SL/Time)"]
-    end
-
-    Vol --> Scorer
-    Regime --> Scorer
-    Mean --> Scorer
-    Momentum --> Scorer
-    Risk --> Scorer
-    Micro --> Scorer
-
-    Scorer --> Agg
-    Agg --> Conf
-    Conf --> Entry
-    Conf --> Size
-    Conf --> Exit
-```
-
-### Indicator Categories & Weights
-
-| Category | Indicators | Weight Range | Update Frequency |
-|----------|------------|--------------|------------------|
-| **Volatility** | GARCH, EGARCH, FIGARCH, Realized Vol, Range Vol | 15-25% | 1min - 1hr |
-| **Regime** | HMM States, RS-GARCH, Structural Breaks | 10-20% | 1hr - 4hr |
-| **Mean Reversion** | Hurst Exponent, OU Process, Half-Life, Z-Score | 10-15% | 5min - 1hr |
-| **Momentum** | Spectral Analysis, Wavelet Decomposition, Trend Strength | 10-15% | 1min - 15min |
-| **Risk** | VaR, CVaR, Drawdown, Correlation, Beta | 15-20% | Real-time |
-| **Microstructure** | Order Flow Imbalance, VPIN, Kyle's Lambda | 5-15% | Tick-level |
-| **Sentiment** | News Sentiment, COT Positioning, Options Flow | 5-10% | 15min - Daily |
-
-### Simulation & Calculation Pipeline
-
-```mermaid
-flowchart LR
-    subgraph Input["Market Data"]
-        Ticks["Tick Data"]
-        Bars["OHLCV Bars"]
-        Depth["Order Book"]
-    end
-
-    subgraph Calcs["Parallel Calculations"]
-        MC["Monte Carlo\n10K paths"]
-        Bootstrap["Bootstrap\nConfidence"]
-        Backtest["Walk-Forward\nValidation"]
-        Stress["Stress\nScenarios"]
-    end
-
-    subgraph Models["Model Ensemble"]
-        Parametric["Parametric\nModels"]
-        NonParam["Non-Parametric\nModels"]
-        ML["ML/Statistical\nLearning"]
-    end
-
-    subgraph Output["Trading Signals"]
-        Signal["Composite\nSignal"]
-        Confidence["Confidence\nInterval"]
-        Risk["Risk\nBudget"]
-    end
-
-    Ticks --> Calcs
-    Bars --> Calcs
-    Depth --> Calcs
-
-    Calcs --> Models
-    Models --> Output
-```
+Position size is set by a **GARCH volatility model**: higher volatility reduces lot size, lower volatility allows larger size within limits. See [Quantitative Models](docs/quantitative/models.md).
 
 ## Key Features
 
-### Quantitative Analysis
-- **20+ Statistical Indicators** with individual weights and confidence scores
-- **Ensemble Methods**: Combining multiple models for robust signal generation
-- **Adaptive Weights**: Dynamic weight adjustment based on regime and performance
-- **Multi-Timeframe Analysis**: From tick-level to daily aggregations
-
-### Simulation Capabilities
-- **Monte Carlo Simulations**: 10,000+ paths for VaR/CVaR estimation
-- **Bootstrap Methods**: Non-parametric confidence intervals
-- **Stress Testing**: Historical and hypothetical scenarios
-- **Walk-Forward Optimization**: Out-of-sample validation
+### Strategy
+- Gold only (XAUUSD), intraday, direction-neutral and regime-adaptive
+- Each position is exited by opening an offsetting position (trailing-stop profit target or fixed stop); the two legs are then netted via Close By
+- Execution concentrated in the New York session; no trading at weekends or when the market is closed
+- Economic-calendar/news filter and continuous spread monitoring
 
 ### Risk Management
-- Real-time position monitoring and exposure limits
-- Dynamic position sizing based on volatility regime
-- **1% Daily Stop Loss** circuit breaker (hard limit)
-- Multi-level risk controls (order, account, portfolio)
+- **Per-position stop:** a 25.00 move in the gold price (2,500 per lot)
+- **Daily loss limit: 1% of NAV** (in place since October 2025) - stops order generation and closes open positions; resumes automatically next session
+- **Cumulative drawdown limit: 5% of NAV** - closes all positions; trading resumes only after partner review and approval
+- **Size per order:** approx. 7.5 lots on approx. 4.2m NAV, scaling in lots per million of NAV
+- **Margin:** internal limit of 10% of NAV
+- **Broker:** margin call at 10%, independent of Genese infrastructure
+- Daily and cumulative limits are enforced server-side by `bh-guardian` and cannot be manually overridden
 
 ### Infrastructure
-- **Dual-site deployment** for high availability
-- **Low-latency execution targets** (deployed near liquidity providers; actual latency depends on broker/venue)
-- Automated failover and disaster recovery
-- Comprehensive monitoring and alerting
+- **Two European data centres** (primary and disaster recovery) with automatic failover
+- Broker heartbeat every second, with failover to a secondary OnEquity server (Amsterdam) if the primary (London) is unavailable
+- Automatic cross-validation of market data between sources
+- Hourly reconciliation with the PAMM platform
+- Partners alerted through an internal app and dashboard; a dedicated trader monitors execution in real time and has an emergency stop
 
 ## Documentation
 
 ### Investor Documents
-- [Executive Summary](docs/EXECUTIVE_SUMMARY.md) - Fund overview for prospective investors
-- [Capacity Analysis](docs/CAPACITY_ANALYSIS.md) - AUM limits and market impact
+- [Executive Summary](docs/EXECUTIVE_SUMMARY.md) - Overview for prospective investors
+- [Capacity Analysis](docs/CAPACITY_ANALYSIS.md) - Capacity and execution
 - [Operational Due Diligence](docs/OPERATIONAL_DUE_DILIGENCE.md) - ODD information
 - [Disclaimers & Risk Factors](docs/DISCLAIMERS.md) - Important disclosures
+- [Production Change History](docs/PRODUCTION_CHANGE_HISTORY.md) - Configuration changes by date
 
 ### Technical Documentation
 - [Architecture Overview](docs/architecture/overview.md)
@@ -232,28 +138,15 @@ flowchart LR
 - [Risk Framework](docs/risk-management/framework.md)
 - [Market Connectors](docs/connectors/overview.md)
 
-## Technology Stack
-
-| Layer | Technologies |
-|-------|-------------|
-| **Execution** | C++ 20, MetaTrader 5 API |
-| **Risk & Orchestration** | Go 1.22+, gRPC, Protocol Buffers |
-| **Circuit Breaker** | Rust 1.75+, Tokio |
-| **Quantitative** | Python 3.11+, NumPy, SciPy, Arch, Statsmodels, Scikit-learn |
-| **Messaging** | ZeroMQ, Redis Streams, Apache Kafka |
-| **Databases** | TimescaleDB, PostgreSQL, Redis, InfluxDB |
-| **Infrastructure** | Kubernetes, Terraform, Prometheus, Grafana |
-
 ## Security
 
-Our systems implement comprehensive security measures:
-- End-to-end encryption for all inter-service communication
-- Secure key management
-- Comprehensive audit logging
-- Role-based access control (RBAC)
+- Passkey authentication with 2FA on all access
+- Servers on an internal network reachable only via VPN
+- Credentials rotated quarterly
+- Institutional account monitoring via API rather than investor passwords
 
-**Note:** BlackHole Fund operates as a PAMM account manager, not a regulated investment fund. See [Disclaimers](docs/DISCLAIMERS.md) for important information.
+**Note:** Genese Capital currently operates as a PAMM account manager through BlackHole Capital Ltd. and WEAP Global Limited (both Hong Kong), not as a regulated investment fund. A Genese Capital fund in the Cayman Islands is in the process of being established; registration details will be provided once completed. See [Disclaimers](docs/DISCLAIMERS.md).
 
 ---
 
-*BlackHole Fund - Precision Trading Through Quantitative Excellence*
+*Genese Capital (formerly BlackHole Capital)*

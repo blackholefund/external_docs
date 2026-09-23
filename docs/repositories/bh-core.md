@@ -2,7 +2,7 @@
 
 ## Overview
 
-**bh-core** is the central orchestration service for BlackHole Fund's trading infrastructure, written in Go. It coordinates all other services, manages the trading workflow, handles service discovery, and provides a unified control plane for the entire system.
+**bh-core** is the central orchestration service for the Genese Capital (formerly BlackHole Capital) trading infrastructure, written in Go. It coordinates all other services, manages the trading workflow, handles service discovery, and provides a unified control plane for the entire system.
 
 ## Technical Specifications
 
@@ -154,46 +154,21 @@ Manages service registration and health monitoring via Consul.
 
 ```
 Service Registry:
-├── mt5-tick-primary      health: passing   zone: ld4-a
-├── mt5-tick-backup       health: passing   zone: ld4-b
-├── mt5-executor-primary  health: passing   zone: ld4-a
-├── mt5-executor-backup   health: passing   zone: ld4-b
-├── bh-risk-1             health: passing   zone: ld4-a
-├── bh-risk-2             health: passing   zone: ld4-b
-├── bh-guardian-1         health: passing   zone: ld4-a
-├── bh-guardian-2         health: passing   zone: ld4-b
-├── bh-quant-1            health: passing   zone: ld4-a
-└── bh-quant-2            health: passing   zone: ld4-b
+├── mt5-tick-primary      health: passing   zone: site-primary
+├── mt5-tick-backup       health: passing   zone: site-dr
+├── mt5-executor-primary  health: passing   zone: site-primary
+├── mt5-executor-backup   health: passing   zone: site-dr
+├── bh-risk-1             health: passing   zone: site-primary
+├── bh-risk-2             health: passing   zone: site-dr
+├── bh-guardian-1         health: passing   zone: site-primary
+├── bh-guardian-2         health: passing   zone: site-dr
+├── bh-quant-1            health: passing   zone: site-primary
+└── bh-quant-2            health: passing   zone: site-dr
 ```
 
 ### 4. Configuration Manager
 
-Dynamic configuration with hot-reload capability.
-
-```yaml
-# Managed configuration keys
-trading:
-  enabled: true
-  symbols:
-    - XAUUSD
-  max_open_orders: 10
-
-risk:
-  daily_loss_limit_pct: 1.0
-  max_position_size: 10.0
-  max_leverage: 20
-
-strategies:
-  momentum_gold:
-    enabled: true
-    allocation_pct: 30
-  mean_reversion_gold:
-    enabled: true
-    allocation_pct: 40
-  volatility_breakout:
-    enabled: false
-    allocation_pct: 30
-```
+Dynamic configuration with hot-reload capability. Trading is configured for a single instrument (XAUUSD) and a single strategy. Risk limits are not configured here: position sizing and per-order limits are enforced by [bh-risk](bh-risk.md), and the daily (1% of NAV, since October 2025) and cumulative (5% of NAV) limits by [bh-guardian](bh-guardian.md), which cannot be manually overridden. Lot and risk adjustments are system-generated and require management approval.
 
 ## Trading Workflow
 
@@ -257,7 +232,7 @@ GET  /api/v1/positions           - Current positions
 GET  /api/v1/pnl                 - P&L summary
 
 POST /api/v1/control/halt        - Emergency halt (requires auth)
-POST /api/v1/control/resume      - Resume trading (requires auth)
+POST /api/v1/control/resume      - Resume after a manual halt (requires auth; does not override bh-guardian daily/cumulative limits)
 
 GET  /api/v1/config              - Get current config
 PUT  /api/v1/config              - Update config (hot reload)
@@ -414,18 +389,6 @@ curl -X POST https://bh-core/api/v1/control/halt \
   -d '{"reason": "Market volatility", "operator": "john.doe"}'
 ```
 
-### Strategy Deployment
+### Deployment of Changes
 
-```bash
-# Register new strategy
-bh-core-cli strategy register \
-  --name "new_strategy" \
-  --type "signal" \
-  --allocation 10
-
-# Enable strategy
-bh-core-cli strategy enable --name "new_strategy"
-
-# Monitor strategy
-bh-core-cli strategy status --name "new_strategy"
-```
+Parameter and configuration changes follow a staged deployment - demo, proprietary capital, production. No parameter change goes directly to production.

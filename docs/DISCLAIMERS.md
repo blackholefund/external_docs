@@ -1,12 +1,16 @@
 # Important Disclaimers & Risk Factors
 
+*Genese Capital (formerly BlackHole Capital).*
+
 ## Critical Notice
 
-**BlackHole Fund is NOT a regulated investment fund.**
+**Genese Capital is NOT a regulated investment fund.**
 
-We operate as traders managing PAMM (Percentage Allocation Management Module) accounts. By connecting to our PAMM, you are allowing trades from our master account to be copied proportionally to your own broker account.
+Genese Capital currently operates as a PAMM (Percentage Allocation Management Module) account manager through BlackHole Capital Ltd. and WEAP Global Limited (both Hong Kong). It does not provide investment advice and does not hold client funds. All capital is held by OnEquity Ltd as broker and custodian. A Genese Capital fund in the Cayman Islands is in the process of being established; its terms will be set out in its offering documents.
 
-**You can lose your entire investment. Only invest what you can afford to lose.**
+This documentation is not an investment proposal, solicitation or offer to invest in any financial product or strategy.
+
+**Trading foreign exchange and gold on margin carries a high level of risk and may not be suitable for all investors. You can lose your entire investment. Only invest what you can afford to lose.**
 
 ## What This Is (and Isn't)
 
@@ -15,39 +19,37 @@ We operate as traders managing PAMM (Percentage Allocation Management Module) ac
 | Aspect | Reality |
 |--------|---------|
 | Structure | PAMM account management |
-| Your Funds | Held in YOUR broker account |
-| Our Access | Trade copying only - no withdrawal access |
-| Regulation | None - we are traders, not a regulated fund |
+| Client funds | Held by OnEquity Ltd (broker and custodian) |
+| Our role | Strategy, PAMM account management, risk control and infrastructure |
+| Custody | Genese does not hold client funds at any time |
 | Guarantees | None |
 
 ### What We Are NOT
 
-- NOT a registered investment fund
-- NOT a licensed investment adviser
-- NOT covered by investor protection schemes
-- NOT a custodian of your funds
-- NOT able to withdraw your money
+- NOT a regulated investment fund
+- NOT a provider of investment advice
+- NOT a custodian of client funds
+
+This documentation does not claim any regulatory registration or licence for Genese Capital, BlackHole Capital Ltd. or WEAP Global Limited.
 
 ## Risk Factors
 
 ### PAMM-Specific Risks
 
-**No Regulatory Protection**
-- We are not registered with any financial regulator
-- No investor compensation schemes apply to our trading
-- No regulatory oversight of our activities
-- You have no recourse through financial ombudsman services
+**Limited Regulatory Protection**
+- The manager is not a regulated investment fund
+- Investor protection depends on the broker's own regulatory status and policies
+- Verify OnEquity's regulatory status (Seychelles FSA, Securities Dealer licence no. SD154) and client-money policies yourself
 
 **Broker Dependency**
-- Your funds are with your broker, not us
-- Broker solvency affects your funds
-- Broker terms govern withdrawals
+- Client funds are with the broker, not with Genese
+- Broker solvency affects client funds
+- Broker terms govern deposits and withdrawals
 - Broker execution quality affects returns
 
-**Trade Copying Risks**
-- Trades may not copy perfectly
-- Latency between master and PAMM accounts
-- Slippage may differ from master account
+**Allocation Risks**
+- Results are allocated by the PAMM platform
+- Execution is distributed across multiple PAMM accounts with staggered entries, so fills can differ between accounts
 - Minimum lot sizes may affect smaller accounts differently
 
 ### Market Risks
@@ -60,29 +62,29 @@ Gold (XAU/USD) can experience significant price movements due to:
 - Changes in inflation expectations
 - Supply and demand dynamics
 
-**Forex Market Risks**
-Trading in foreign exchange markets involves:
-- Leverage amplifying both gains and losses
-- 24-hour market exposure
-- Counterparty risk with brokers
-- Execution risk during high volatility
-- Spread widening during market stress
+**Leverage**
+Leverage can work against you as well as for you.
+
+**Gap Risk**
+The per-position stop triggers after a gold move of about 0.45%. If price jumps through the stop without execution, the loss can exceed the daily and cumulative limits, which act on new orders and open positions but cannot prevent a price gap. Directional exposure is short (the interval before the offsetting leg opens) and there is no weekend or closed-market trading, so the probability of a gap coinciding with an open position is low but not zero.
 
 **Liquidity Risk**
 Extreme market conditions may result in:
 - Wider bid-ask spreads
 - Partial fills on orders
 - Delayed execution
-- Price gaps between sessions
+- Price gaps
 
 ### Strategy Risks
 
 **Model Risk**
-Our quantitative models:
-- Are based on historical data that may not predict future behavior
+Quantitative models:
+- Are based on historical data that may not predict future behaviour
 - May contain errors in implementation
 - Could become ineffective during regime changes
-- May be correlated with other systematic strategies
+
+**Execution Cost Risk**
+The net result per lot is small relative to execution costs; additional costs per lot (spread, slippage, commission) can consume a meaningful share of the result. See [Capacity and Execution](CAPACITY_ANALYSIS.md).
 
 **Technology Risk**
 Automated trading systems are subject to:
@@ -91,36 +93,28 @@ Automated trading systems are subject to:
 - Data feed disruptions
 - Cybersecurity threats
 
-**Execution Risk**
-Actual trading may differ from expectations due to:
-- Slippage between signal and execution
-- Broker execution quality variations
-- Market impact of orders
-- System latency
-
 ### Operational Risks
 
 **Key Person Risk**
-Our operation depends on:
-- Continued involvement of key traders
+The operation depends on:
+- Continued involvement of the partners and team
 - Ongoing system maintenance
 - Infrastructure reliability
 
 **No Business Continuity Guarantee**
 We may:
-- Cease operations at any time
+- Cease operations
 - Close the PAMM to new investors
-- Change strategy without notice
+- Change the strategy
 
 ## Past Performance Disclaimer
 
 **PAST PERFORMANCE IS NOT INDICATIVE OF FUTURE RESULTS.**
 
-Any performance data:
-- May be based on backtests or simulations
+Performance data, including data from [Myfxbook](https://www.myfxbook.com/members/blackholeai/blackhole-fund/11784758):
+- Reflects historical results under specific market conditions and risk parameters
+- Includes periods traded under a previous configuration
 - Does not guarantee future returns
-- May have been achieved under different market conditions
-- Cannot be relied upon as prediction of future performance
 
 ## Who Should NOT Invest
 
@@ -138,11 +132,12 @@ Do NOT join this PAMM if you:
 | Fee Type | Rate |
 |----------|------|
 | Management Fee | None |
-| Performance Fee | 20-30% of profits |
+| Performance Fee | 20%, with a per-investor high-water mark |
+| Minimum allocation | USD 10,000 |
 
-- Performance fees are calculated using high-water mark
-- Fees are automatically deducted by the PAMM platform
-- You only pay fees on profits, not losses
+- Performance fees are booked as balance operations by the PAMM platform
+- Terms can be customised for institutional allocations
+- Cayman fund terms will be set out in its offering documents
 
 ## No Guarantees
 
@@ -157,7 +152,7 @@ Do NOT join this PAMM if you:
 
 ## Your Responsibilities
 
-By joining our PAMM, you confirm:
+By joining the PAMM, you confirm:
 
 1. **Understanding of Risks**
    - You have read and understood these disclaimers
@@ -167,7 +162,6 @@ By joining our PAMM, you confirm:
 2. **Financial Suitability**
    - You can afford to lose the entire amount invested
    - This is risk capital, not essential savings
-   - You have other financial resources
 
 3. **Due Diligence**
    - You have researched the broker's regulatory status
@@ -177,7 +171,7 @@ By joining our PAMM, you confirm:
 4. **Legal Compliance**
    - You are legally permitted to trade forex in your jurisdiction
    - You will comply with local tax laws
-   - You meet the broker's eligibility requirements
+   - You meet the broker's eligibility requirements (OnEquity does not onboard residents of the United States, Canada and sanctioned or restricted territories)
 
 ## Tax Considerations
 
@@ -189,9 +183,9 @@ By joining our PAMM, you confirm:
 ## Changes and Termination
 
 We reserve the right to:
-- Modify trading strategy at any time
+- Modify the trading strategy
 - Close the PAMM to new investors
-- Terminate the PAMM entirely
+- Terminate the PAMM
 - Change fee structures (with notice)
 
 ## No Advisory Relationship
@@ -204,17 +198,13 @@ This documentation:
 
 ## Professional Advice
 
-Before investing, you should:
-- Consult independent financial advisors
-- Understand the broker's terms and conditions
-- Research the broker's regulatory status
-- Ensure forex trading is legal in your jurisdiction
+Prospective investors should conduct their own due diligence and consult independent legal, tax and financial advisers.
 
 ---
 
 ## Acknowledgment
 
-**By connecting to our PAMM, you acknowledge that:**
+**By connecting to the PAMM, you acknowledge that:**
 
 1. You have read and understood all disclaimers
 2. You understand this is NOT a regulated fund
@@ -227,4 +217,4 @@ Before investing, you should:
 
 *Trading forex/CFDs carries substantial risk of loss. Only trade with money you can afford to lose.*
 
-*Last Updated: 2024*
+*Last reviewed: September 2026*

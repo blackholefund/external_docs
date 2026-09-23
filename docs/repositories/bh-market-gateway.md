@@ -2,7 +2,7 @@
 
 ## Overview
 
-**bh-market-gateway** is the market data connector service that interfaces with external data providers, exchanges, and news feeds. Written in Go with performance-critical components in Rust, it normalizes data from multiple sources into a unified format for consumption by other BlackHole services.
+**bh-market-gateway** is the market data connector service that interfaces with external data providers, exchanges, and news feeds. Written in Go with performance-critical components in Rust, it normalizes data from multiple sources into a unified format for consumption by the other services of the Genese Capital (formerly BlackHole Capital) infrastructure. The specific data sources used by the decision engine are proprietary.
 
 **Note:** Provider names are placeholders (Provider A/Provider B). Replace with contracted vendors and adjust specs/SLAs accordingly.
 
@@ -81,40 +81,13 @@ Primary institutional data feed for real-time and reference data.
 | Corporate actions | Event-driven | < 1min |
 | Economic indicators | Event-driven | < 1s |
 
-### 2. Exchange Direct Feeds
-
-Direct connections to major exchanges for lowest latency.
-
-```
-Exchange Connections:
-├── LBMA (London)      Gold spot reference
-├── COMEX (Chicago)    Gold futures (GC)
-├── LSE (London)       Gold ETFs, mining stocks
-├── NYSE (New York)    Gold ETFs (GLD, IAU)
-└── CME (Chicago)      FX futures
-```
-
-### 3. Provider B Market Data API
+### 2. Provider B Market Data API
 
 Backup data feed and additional market coverage.
 
-### 4. News & Events API
+### 3. Economic Calendar & News API
 
-```
-News Sources:
-├── Provider A News     Priority: 1 (fastest)
-├── Provider B News       Priority: 2
-├── Dow Jones          Priority: 3
-└── Economic Calendar  Priority: 1
-
-Event Types Monitored:
-├── FOMC decisions
-├── NFP releases
-├── CPI/PPI data
-├── Central bank speeches
-├── Geopolitical events
-└── Major gold-related news
-```
+The economic calendar and news are received via API and drive the news filter, which blocks entries around high-impact events.
 
 ## Connector Implementations
 
@@ -190,18 +163,11 @@ Unified symbol mapping across all data sources:
 XAUUSD:
   provider_a: "XAUUSD-SPOT"
   provider_b: "XAUUSD"
-  comex: "GC"
   internal: "XAUUSD"
   description: "Gold Spot USD"
   tick_size: 0.01
   lot_size: 1.0
   currency: "USD"
-
-DXY:
-  provider_a: "DXY-INDEX"
-  provider_b: "DXY"
-  internal: "DXY"
-  description: "US Dollar Index"
 ```
 
 ## Data Normalization
@@ -298,8 +264,6 @@ connectors:
     app_name: "blackhole_gateway"
     symbols:
       - "XAUUSD-SPOT"
-      - "DXY-INDEX"
-      - "GC1-FUT"
     reconnect_interval: 5s
 
   provider_b:
@@ -310,25 +274,10 @@ connectors:
     symbols:
       - "XAUUSD"
 
-  fix:
-    enabled: true
-    sessions:
-      - id: "COMEX"
-        sender_comp_id: "BLACKHOLE"
-        target_comp_id: "COMEX"
-        host: "fix.cmegroup.com"
-        port: 9880
-        ssl: true
-        heartbeat_interval: 30
-
   news:
     enabled: true
-    provider_a_news:
-      enabled: true
-      topics: ["GOLD", "PRECIOUS_METALS", "FED", "RATES"]
     economic_calendar:
       enabled: true
-      events: ["FOMC", "NFP", "CPI", "PPI", "GDP"]
 
 normalization:
   decimal_precision: 5
@@ -339,7 +288,6 @@ aggregation:
   source_weights:
     provider_a: 1.0
     provider_b: 0.8
-    comex: 1.0
   update_interval: 10ms
 
 distribution:
@@ -369,8 +317,7 @@ monitoring:
 Topics:
 ├── PRICE.XAUUSD           Raw prices from all sources
 ├── PRICE.XAUUSD.BEST      Aggregated best price
-├── PRICE.XAUUSD.PROVIDER_A Single source
-└── PRICE.XAUUSD.COMEX     Single source
+└── PRICE.XAUUSD.PROVIDER_A Single source
 ```
 
 ### Redis Streams
@@ -409,7 +356,7 @@ Streams:
 
 ```
 # Connector metrics
-bh_gateway_connected{source="provider_a|provider_b|comex"}
+bh_gateway_connected{source="provider_a|provider_b"}
 bh_gateway_messages_received_total{source="...",type="price|news|status"}
 bh_gateway_latency_seconds{source="...",quantile="0.5|0.95|0.99"}
 
@@ -423,20 +370,19 @@ bh_gateway_published_total{channel="zmq|redis|kafka"}
 bh_gateway_publish_latency_seconds{channel="..."}
 ```
 
-## Failover & Redundancy
+## Failover & Anomaly Handling
+
+Market data is automatically cross-validated between sources. Depending on the anomaly, the system discards the tick, freezes execution or pauses trading. **A pause requires manual release.**
 
 ```mermaid
 flowchart TD
-    Primary["Primary: Provider A Market Data API"] -->|failure detected| Secondary["Secondary: Provider B Market Data API"]
-    Secondary -->|failure detected| Tertiary["Tertiary: Exchange Direct (COMEX)"]
-    Tertiary -->|all sources failed| Alert["ALERT: Trading paused - no market data"]
+    Tick["Incoming tick"] --> Validate{"Cross-source\nvalidation"}
+    Validate -->|"OK"| Publish["Publish"]
+    Validate -->|"Anomaly"| Response{"Severity"}
+    Response --> Discard["Discard tick"]
+    Response --> Freeze["Freeze execution"]
+    Response --> Pause["Pause trading\n(manual release required)"]
 ```
-
-Failover Criteria:
-- No update for > 5 seconds
-- Latency > 100ms sustained
-- Price validation failures
-- Connection errors
 
 ## Security
 

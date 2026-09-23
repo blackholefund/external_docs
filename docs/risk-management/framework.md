@@ -1,357 +1,137 @@
 # Risk Management Framework
 
+*Genese Capital (formerly BlackHole Capital). Last reviewed September 2026.*
+
 ## Overview
 
-BlackHole Fund employs a comprehensive, multi-layered risk management framework designed to protect capital while enabling systematic trading in the gold market. Our approach combines quantitative risk metrics with hard operational limits.
+Genese Capital's risk framework combines per-position stops, account-level loss limits enforced server-side, volatility-based position sizing and entry filters. Core risk controls are enforced by Genese infrastructure; broker protections are secondary safeguards. MT5 acts only as an execution connector.
 
-## Risk Philosophy
+## Limits
 
-### Core Principles
+| Control | Limit | Action |
+|---------|-------|--------|
+| Loss per position | 25.00 move in the gold price (2,500 per lot) | Position closed; subject to spread widening |
+| Daily loss | 1% of NAV (in place since October 2025) | Stops order generation and closes open positions; resumes automatically next session |
+| Cumulative drawdown | 5% of NAV | Closes all positions; resumes only after partner review and approval |
+| Margin | 10% of NAV | Internal limit |
+| Size per order | Approx. 7.5 lots on 4.2m NAV | Scales with NAV (lots per million of NAV) |
+| Broker | Margin call at 10% | Independent of Genese infrastructure |
 
-1. **Capital Preservation First** - The primary objective is protecting capital. Returns are secondary to survival.
+- Daily and cumulative limits are enforced server-side by `bh-guardian` and **cannot be manually overridden**.
+- The 1% daily limit was added in October 2025, alongside the existing 5% cumulative limit.
+- The 5% cumulative limit has never been reached.
 
-2. **Multiple Independent Safeguards** - No single point of failure. Risk controls operate at multiple levels with independent systems.
-
-3. **Hard Limits Are Absolute** - Circuit breakers cannot be overridden during market hours. Period.
-
-4. **Adapt to Regime** - Risk parameters dynamically adjust based on market conditions.
-
-5. **Transparency and Auditability** - Every risk decision is logged and auditable.
+One lot equals 100 ounces; a 1.00 move in the gold price equals 100 per lot.
 
 ## Risk Control Hierarchy
 
 ```mermaid
 flowchart TB
-    subgraph Level1["LEVEL 1: ORDER-LEVEL CONTROLS"]
-        O1["Volume limits per order"]
-        O2["Price sanity checks"]
-        O3["Symbol validation"]
-        O4["Duplicate detection"]
+    subgraph Level1["ENTRY FILTERS"]
+        F1["Economic calendar / news filter\n(no entries around high-impact events)"]
+        F2["Spread filter\n(no new entries above threshold)"]
+        F3["Top-of-book depth check"]
     end
 
-    subgraph Level2["LEVEL 2: POSITION-LEVEL CONTROLS (bh-risk)"]
-        P1["Position sizing based on volatility"]
-        P2["Single position exposure limits"]
-        P3["Correlated exposure limits"]
-        P4["VaR contribution limits"]
+    subgraph Level2["POSITION LEVEL (bh-risk)"]
+        P1["GARCH volatility-based sizing"]
+        P2["Per-position stop: 25.00 in gold price"]
+        P3["Protective closure on abrupt spread widening"]
     end
 
-    subgraph Level3["LEVEL 3: PORTFOLIO-LEVEL CONTROLS (bh-risk)"]
-        Po1["Gross exposure limits"]
-        Po2["Net exposure limits"]
-        Po3["Sector concentration limits"]
-        Po4["Drawdown monitoring"]
+    subgraph Level3["ACCOUNT LEVEL"]
+        A1["Internal margin limit: 10% of NAV"]
+        A2["Size per order scales with NAV"]
     end
 
-    subgraph Level4["LEVEL 4: SYSTEM-LEVEL CONTROLS (bh-guardian)"]
-        S1["Daily loss limit (1%)"]
-        S2["Emergency halt capability"]
-        S3["Automatic position closeout"]
-        S4["Manual override (authorized only)"]
+    subgraph Level4["SYSTEM LEVEL (bh-guardian)"]
+        S1["Daily loss limit: 1% of NAV"]
+        S2["Cumulative drawdown limit: 5% of NAV"]
     end
 
-    Level1 --> Level2
-    Level2 --> Level3
-    Level3 --> Level4
+    subgraph Level5["BROKER"]
+        B1["Margin call at 10%"]
+    end
+
+    Level1 --> Level2 --> Level3 --> Level4 --> Level5
 ```
 
-## Quantitative Risk Metrics
+## Position Structure
 
-### Value at Risk (VaR)
-
-Daily VaR calculations at multiple confidence levels:
-
-| Confidence | Interpretation | Limit |
-|------------|----------------|-------|
-| 95% VaR | 1 in 20 days exceeded | 1.5% of NAV |
-| 99% VaR | 1 in 100 days exceeded | 2.5% of NAV |
-| 99.9% VaR | 1 in 1000 days exceeded | 4.0% of NAV |
-
-**Calculation Methods**:
-- Historical simulation (252-day rolling window)
-- Parametric (assuming Student-t distribution)
-- Monte Carlo (10,000 simulations)
-
-**Final VaR**: Conservative estimate using maximum of all methods
-
-### Expected Shortfall (CVaR)
-
-Average loss in tail scenarios:
-
-| Metric | Target | Hard Limit |
-|--------|--------|------------|
-| CVaR 95% | < 1.8% | 2.5% |
-| CVaR 99% | < 3.0% | 4.0% |
-
-CVaR is used for:
-- Capital allocation
-- Position sizing optimization
-- Regulatory reporting (FRTB compliance)
-
-### Drawdown Limits
-
-```mermaid
-flowchart TB
-    subgraph Daily["DAILY DRAWDOWN"]
-        D0["0.00% - Start"]
-        D1["0.50% - WARNING\n(Position size -25%)"]
-        D2["0.75% - ALERT\n(No new positions)"]
-        D3["1.00% - HALT\n(Circuit breaker)"]
-    end
-
-    subgraph Weekly["WEEKLY DRAWDOWN"]
-        W1["2.0% - Warning"]
-        W2["3.0% - No new positions"]
-        W3["4.0% - Review required"]
-    end
-
-    subgraph Monthly["MONTHLY DRAWDOWN"]
-        M1["5.0% - Warning"]
-        M2["8.0% - Formal review"]
-    end
-
-    subgraph Peak["PEAK-TO-TROUGH"]
-        PT1["10.0% - Mandatory review"]
-        PT2["15.0% - Trading suspension"]
-    end
-
-    D0 --> D1 --> D2 --> D3
-```
+- Each position is exited by opening an **offsetting position**, triggered by a trailing-stop profit target or a fixed stop.
+- Once the offsetting leg is open the pair is market-neutral and the result is locked; the two legs are then netted via **Close By**.
+- Directional exposure is limited to the interval before the offsetting leg opens.
+- The account holds **up to 8 simultaneous positions, organised in pairs**. Net exposure is lower than gross exposure because the legs offset. Full margin is charged on both legs.
+- Positions are closed intraday and are not intended to be held overnight.
 
 ## Position Sizing
 
-### Volatility-Adjusted Sizing
+Position size is set by a **GARCH volatility model**: higher volatility reduces lot size, lower volatility allows larger size within limits. Limits scale in lots per million of NAV. Lot adjustments are system-generated and require management approval.
 
-Position size is inversely proportional to current volatility:
+## Entry Filters
 
-```
-Position Size = (Risk Budget × Account Equity) / (ATR × ATR Multiplier)
-```
+- **News:** economic calendar and news via API, blocking entries around high-impact events.
+- **Spreads:** measured continuously; no new entries above a defined threshold, and protective closure if spreads widen abruptly after entry.
+- **Trading window:** execution concentrated in the New York session; no trading at weekends or when the market is closed.
 
-**Parameters**:
-- Risk Budget: 1% of equity per trade (max)
-- ATR Period: 14-day Average True Range
-- ATR Multiplier: 2.0 (adjustable by regime)
+## 1% Daily Stop vs 5% Emergency Control
 
-### Kelly Criterion (Modified)
+Both controls are enforced server-side by [bh-guardian](../repositories/bh-guardian.md) and **cannot be manually overridden**.
 
-Optimal sizing based on edge and win rate:
-
-```
-f* = (p × b - q) / b
-```
-
-Where:
-- p = Win probability
-- q = Loss probability (1-p)
-- b = Win/Loss ratio
-
-**Implementation**: Fractional Kelly (0.25x) for variance reduction
-
-### Regime-Based Adjustments
-
-| Volatility Regime | Size Multiplier | Max Position |
-|-------------------|-----------------|--------------|
-| Low (< 10% ann) | 1.25x | 30% of NAV |
-| Normal (10-20%) | 1.00x | 25% of NAV |
-| High (20-35%) | 0.50x | 15% of NAV |
-| Extreme (> 35%) | 0.25x | 10% of NAV |
-
-## Exposure Limits
-
-### Single Position Limits
-
-| Limit Type | Threshold | Action |
-|------------|-----------|--------|
-| Notional value | 25% NAV | Reject new orders |
-| Margin utilization | 50% | Warning |
-| Margin utilization | 70% | Reduce exposure |
-| Margin utilization | 80% | Close positions |
-
-### Portfolio Exposure
-
-| Exposure Type | Limit | Calculation |
-|---------------|-------|-------------|
-| Gross Exposure | 200% NAV | Σ|position| / NAV |
-| Net Exposure | ±100% NAV | Σposition / NAV |
-| Correlation-Adjusted | 150% NAV | Risk-weighted sum |
-
-## Stress Testing
-
-### Standard Scenarios
-
-| Scenario | Description | Expected Impact |
-|----------|-------------|-----------------|
-| Gold -5% | Flash crash | -1.25% to -2.5% |
-| Gold +5% | Sharp rally | Variable |
-| VIX +50% | Volatility spike | Widen stops |
-| DXY +3% | Dollar strength | -0.5% to -1.5% |
-| Liquidity shock | Spread widening | -0.3% slippage |
-
-### Tail Risk Scenarios
-
-| Scenario | Gold | VIX | Probability | Max Loss |
-|----------|------|-----|-------------|----------|
-| 2008-style crisis | -15% | +200% | 0.1% | -4% (limited) |
-| Flash crash | -10% | +100% | 0.5% | -2.5% (circuit) |
-| Geopolitical event | +8% | +80% | 1% | Gains likely |
-
-### Stress Test Frequency
-
-- Daily: Standard scenarios
-- Weekly: Extended historical scenarios
-- Monthly: Comprehensive tail risk analysis
-- Quarterly: Full system stress test
-
-## Circuit Breaker System
-
-### bh-guardian Operation
-
-The circuit breaker (bh-guardian) operates independently of all other systems:
+| | 1% daily stop | 5% emergency control |
+|---|---|---|
+| **In place since** | October 2025 | Before October 2025 (the 1% daily limit was added to it) |
+| **Trigger** | Daily loss reaches 1% of NAV | Cumulative drawdown reaches 5% of NAV |
+| **Open positions** | Stops order generation and closes open positions | Closes all positions |
+| **Restart** | Automatic at the next session | Only after partner review and approval |
+| **Manual override** | Not possible | Not possible |
+| **History** | - | Never reached |
 
 ```mermaid
 flowchart TB
-    subgraph Inputs["INPUTS"]
-        I1["Real-time position values"]
-        I2["Current market prices"]
-        I3["Day-start equity"]
-        I4["Realized P&L"]
+    subgraph Daily["1% DAILY STOP"]
+        D1["Daily loss reaches 1% of NAV"] --> D2["Stop order generation\nClose open positions"]
+        D2 --> D3["Resume automatically\nat next session"]
     end
 
-    subgraph Calculation["CALCULATION (Every 100ms)"]
-        C1["Unrealized P&L = Σ(position_value - entry_value)"]
-        C2["Total P&L = Realized + Unrealized"]
-        C3["Drawdown % = -Total P&L / Day-Start Equity × 100"]
+    subgraph Cumulative["5% EMERGENCY CONTROL"]
+        C1["Cumulative drawdown reaches 5% of NAV"] --> C2["Close all positions"]
+        C2 --> C3["Resume only after\npartner review and approval"]
     end
-
-    subgraph Actions["ACTIONS"]
-        A1["DD ≥ 0.5%: REDUCED\n(position sizes halved)"]
-        A2["DD ≥ 0.75%: CLOSING\n(close-only mode)"]
-        A3["DD ≥ 1.0%: HALTED\n(emergency closeout)"]
-    end
-
-    subgraph Recovery["RECOVERY"]
-        R1["Auto reset at 00:00 UTC"]
-        R2["Manual unlock: 30-min cooldown"]
-        R3["Full audit trail"]
-    end
-
-    Inputs --> Calculation
-    Calculation --> Actions
-    Actions --> Recovery
 ```
 
-### Emergency Closeout Procedure
+## Broker-Side Stops and Emergency Controls
 
-```mermaid
-sequenceDiagram
-    participant Guardian as bh-guardian
-    participant Core as bh-core
-    participant Executor as mt5_executor
-    participant Broker as MT5 Broker
+| Control | Owner | Description |
+|---------|-------|-------------|
+| Broker margin call at 10% | OnEquity | Independent secondary safeguard, outside Genese infrastructure |
+| Emergency stop | Dedicated trader | Monitors execution in real time and can halt it |
+| Full stop | Either partner | Full-stop authority and direct account access |
+| Broker disconnection | Genese infrastructure | Heartbeat every second; on disconnection new orders are suspended and existing positions remain managed; secondary OnEquity server (Amsterdam) if the primary (London) is unavailable; partners alerted through an internal app and dashboard |
 
-    Note over Guardian: Daily Loss ≥ 1%
-    Guardian->>Core: HALT Signal
-    Core->>Executor: Cancel All Pending
-    Guardian->>Guardian: Set State = HALTED
-    Guardian->>Guardian: Send Alerts (On-call System, ChatOps)
-    Core->>Executor: Market Close All Positions
-    Executor->>Broker: Close Orders
-    Broker-->>Executor: Confirmations
-    Executor-->>Core: All Closed
-    Note over Guardian: 30-min cooldown starts
-```
+## Stress and Worst Case
 
-Timeline:
-- **T+0s**: All pending orders cancelled, state set to HALTED
-- **T+0s**: Alert sent to all channels
-- **T+1s**: Begin market order closeout
-- **T+5s**: Verify all positions closed
-- **T+10s**: Final P&L reconciliation
-- **T+30min**: Earliest possible manual unlock
+The worst realistic scenario combines a gold volatility spike, a liquidity gap and slippage at the same time.
+
+The per-position stop triggers after a gold move of about 0.45%. The residual risk is a **price gap**: if price jumps through the stop without execution, the loss can exceed the daily and cumulative limits, which act on new orders and open positions but cannot prevent a gap. Because directional exposure is short and there is no weekend or closed-market trading, the probability of such a gap coinciding with an open position is low but not zero.
+
+Containment: per-position, daily and cumulative limits; broker margin call; spread filter; news filter; no weekend trading; data-centre failover.
+
+Quantified stress scenarios and exposure statistics are included in the *Due Diligence Reference*, available on request.
 
 ## Operational Risk Controls
 
-### System Redundancy
-
-| Component | Primary | Backup | Failover Time |
-|-----------|---------|--------|---------------|
-| Execution | mt5_executor (Primary) | mt5_executor (DR) | Target < 5s |
-| Risk Engine | bh-risk (Primary) | bh-risk (Backup) | Target < 10s |
-| Circuit Breaker | bh-guardian (Primary) | bh-guardian (Backup) | Target < 5s |
-| Market Data | Provider A | Provider B | Target < 5s |
-
-### Fail-Safe Defaults
-
-If any critical system becomes unavailable:
-
-| System Unavailable | Default Behavior |
-|--------------------|------------------|
-| bh-risk | Reject all new orders |
-| bh-guardian | Reject all new orders |
-| mt5_tick | Pause trading |
-| bh-quant-engine | Use last known signals |
-| Database | Continue with cached data |
-
-## Monitoring & Reporting
-
-### Real-Time Dashboard
-
-```mermaid
-flowchart LR
-    subgraph Status["CURRENT STATUS"]
-        Active["ACTIVE"]
-    end
-
-    subgraph Metrics["KEY METRICS"]
-        PnL["Daily P&L: +0.25%"]
-        DD["Drawdown: -0.15%"]
-        VaR["VaR 95%: 0.90%"]
-        CVaR["CVaR 95%: 1.24%"]
-    end
-
-    subgraph Exposure["EXPOSURE"]
-        Gross["Gross: 17.5% NAV"]
-        Net["Net: 7.5% NAV"]
-    end
-
-    Status --> Metrics --> Exposure
-```
-
-### Reporting Schedule
-
-| Report | Frequency | Recipients |
-|--------|-----------|------------|
-| Real-time dashboard | Continuous | Trading desk |
-| Daily risk summary | EOD | Risk committee |
-| Weekly risk review | Weekly | Management |
-| Monthly risk report | Monthly | Investors (summary) |
-| Stress test results | Monthly | Risk committee |
+| Area | Behaviour |
+|------|-----------|
+| Broker connection | Heartbeat every second; secondary OnEquity server (Amsterdam) if the primary (London) is unavailable. On disconnection new orders are suspended and existing positions remain managed |
+| Market data | Automatic cross-validation between sources. Depending on the anomaly, the system discards the tick, freezes execution or pauses trading; a pause requires manual release |
+| PAMM reconciliation | Hourly, with automatic pause and alert on divergence |
+| Data centres | Primary and disaster-recovery sites in Europe with automatic failover |
+| Alerting | Partners are alerted through an internal app and dashboard |
 
 ## Governance
 
-### Risk Committee
-
-- **Chair**: Chief Risk Officer
-- **Members**: CIO, Head of Trading, Head of Technology
-- **Meeting Frequency**: Weekly (or as needed)
-- **Authority**: Can modify risk parameters, suspend trading
-
-### Parameter Changes
-
-All risk parameter changes require:
-1. Written proposal with justification
-2. Risk committee approval
-3. Backtesting/simulation results
-4. Implementation during non-trading hours
-5. Full audit trail
-
-### Audit Trail
-
-Every risk decision is logged with:
-- Timestamp (nanosecond precision)
-- Input parameters
-- Calculation results
-- Final decision
-- System state
-- Operator (if manual)
+- Weekly governance meeting between the partners.
+- Monthly research and recalibration cycle: performance analysis, volatility-regime assessment, parameter evaluation.
+- Staged deployment - demo, proprietary capital, production. No parameter change goes directly to production.
+- Lot and risk adjustments are system-generated and require management approval.
