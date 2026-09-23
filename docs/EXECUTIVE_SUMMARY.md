@@ -94,7 +94,7 @@ flowchart TB
 | Size per order | Approx. 7.5 lots on 4.2m NAV | Scales with NAV |
 | Broker | Margin call at 10% | Independent of Genese infrastructure |
 
-Daily and cumulative limits are enforced server-side by `bh-guardian` and cannot be manually overridden. The 5% limit has never been reached. See the [Risk Framework](risk-management/framework.md).
+Daily and cumulative limits are enforced server-side by `bh-guardian` and cannot be manually overridden. The 5% control has never been triggered. See the [Risk Framework](risk-management/framework.md).
 
 ## Execution Infrastructure
 

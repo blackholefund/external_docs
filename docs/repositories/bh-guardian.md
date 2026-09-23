@@ -37,7 +37,7 @@ stateDiagram-v2
 | **Daily limit reached** | Daily loss reaches 1% of NAV | Stops order generation and closes open positions | Automatically at the next session |
 | **Cumulative limit reached** | Cumulative drawdown reaches 5% of NAV | Closes all positions | Only after partner review and approval |
 
-The 5% cumulative limit has never been reached.
+The 5% cumulative control has never been triggered.
 
 ## Core Components
 

@@ -19,7 +19,7 @@ Genese Capital's risk framework combines per-position stops, account-level loss 
 
 - Daily and cumulative limits are enforced server-side by `bh-guardian` and **cannot be manually overridden**.
 - The 1% daily limit was added in October 2025, alongside the existing 5% cumulative limit.
-- The 5% cumulative limit has never been reached.
+- The 5% cumulative control has never been triggered.
 
 One lot equals 100 ounces; a 1.00 move in the gold price equals 100 per lot.
 
@@ -85,7 +85,7 @@ Both controls are enforced server-side by [bh-guardian](../repositories/bh-guard
 | **Open positions** | Stops order generation and closes open positions | Closes all positions |
 | **Restart** | Automatic at the next session | Only after partner review and approval |
 | **Manual override** | Not possible | Not possible |
-| **History** | - | Never reached |
+| **History** | - | Never triggered |
 
 ```mermaid
 flowchart TB
