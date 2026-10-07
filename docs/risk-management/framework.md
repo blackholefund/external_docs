@@ -109,7 +109,7 @@ flowchart TB
 | Full stop | Either partner | Full-stop authority and direct account access |
 | Broker disconnection | Genese infrastructure | Heartbeat every second; on disconnection new orders are suspended and existing positions remain managed; secondary OnEquity server (Amsterdam) if the primary (London) is unavailable; partners alerted through an internal app and dashboard |
 
-## Stress and Worst Case
+## Worst-Case Scenario
 
 The worst realistic scenario combines a gold volatility spike, a liquidity gap and slippage at the same time.
 
@@ -117,7 +117,7 @@ The per-position stop triggers after a gold move of about 0.45%. The residual ri
 
 Containment: per-position, daily and cumulative limits; broker margin call; spread filter; news filter; no weekend trading; data-centre failover.
 
-Quantified stress scenarios and exposure statistics are included in the *Due Diligence Reference*, available on request.
+Genese does not run a formal stress-testing programme. Scenario calculations from the account history and exposure statistics are included in the *Due Diligence Reference*, available on request.
 
 ## Operational Risk Controls
 

@@ -29,9 +29,9 @@ Position limits scale in **lots per million of NAV** rather than in absolute lot
 
 Since the June 2026 sizing optimisation, median gross exposure per million of NAV fell from **6.00 to 3.27 lots**.
 
-## Indicated Capacity
+## Liquidity Provider Capacity
 
-The liquidity provider has **verbally indicated** capacity of up to **150 million** in aggregate volume. **This has not been tested in live execution** and should not be read as a committed or proven capacity figure.
+Capacity is agreed directly with the liquidity provider. Genese provides a weekly and monthly forecast of the volume it will trade, and on that basis the liquidity provider commits to support up to an agreed number of lots. These terms are covered by a confidentiality agreement with the liquidity provider. No separate capacity stress test has been run.
 
 ## Binding Constraint: Execution Quality
 
