@@ -2,7 +2,7 @@
 
 ## Overview
 
-**mt5_executor** is a high-performance order execution engine written in C++ that interfaces directly with MetaTrader 5 brokers. It is responsible for receiving validated orders from the risk management layer and executing them with minimal latency.
+**mt5_executor** is a high-performance order execution engine written in C++ that interfaces with the MetaTrader 5 server of the broker, OnEquity. MT5 acts only as an execution connector; core risk controls are enforced upstream by Genese Capital infrastructure (`bh-risk`, `bh-guardian`). It is responsible for receiving validated orders from the risk management layer and executing them with minimal latency.
 
 ## Technical Specifications
 
@@ -79,6 +79,7 @@ Direct interface to MetaTrader 5 Manager API for order execution.
 - Order modification
 - Order cancellation
 - Position queries
+- Close By (netting the two legs of a pair)
 
 ## Order Flow
 
@@ -170,7 +171,7 @@ mt5_executor_latency_seconds{quantile="0.5|0.95|0.99"}
 mt5_executor_queue_depth
 
 # Connection metrics
-mt5_executor_broker_connected{broker="primary|backup"}
+mt5_executor_broker_connected{server="primary|secondary"}
 mt5_executor_reconnection_total
 
 # System metrics
@@ -195,19 +196,25 @@ mt5_executor_cpu_seconds_total
 | Network | 1 Gbps | 10 Gbps |
 | Storage | SSD (for logs) | NVMe |
 
-### Colocation Deployment
+### Broker Connectivity
 
-mt5_executor is deployed in colocation facilities (Equinix LD4/LD5) for minimal latency to broker infrastructure:
+mt5_executor runs in both Genese data centres (primary and disaster recovery, Europe) with automatic failover.
 
 ```mermaid
 flowchart LR
-    subgraph equinix["Equinix LD4 Colocation"]
-        Primary["mt5_executor (Primary)"]
-        Backup["mt5_executor (Backup)"]
+    subgraph genese["Genese data centres (EU)"]
+        Primary["mt5_executor (Primary site)"]
+        Backup["mt5_executor (DR site)"]
     end
-    Primary <-->|Cross-connect| Broker["Broker Infrastructure"]
-    Backup <-->|Cross-connect| BackupBroker["Backup Broker"]
+    Primary -->|"Heartbeat every second"| London["OnEquity primary server (London)"]
+    Primary -.->|"If London unavailable"| Amsterdam["OnEquity secondary server (Amsterdam)"]
+    Backup -.-> London
+    Backup -.-> Amsterdam
 ```
+
+- Heartbeat with the broker every second
+- If the primary OnEquity server (London) is unavailable, the connection moves to the secondary OnEquity server (Amsterdam)
+- On disconnection, new orders are suspended and existing positions remain managed; partners are alerted through an internal app and dashboard
 
 ## Security
 

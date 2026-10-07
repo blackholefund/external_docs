@@ -2,7 +2,7 @@
 
 ## Overview
 
-BlackHole Fund's infrastructure utilizes a combination of communication protocols optimized for different use cases: low-latency trading operations, reliable message delivery, and efficient data streaming.
+The Genese Capital (formerly BlackHole Capital) infrastructure utilizes a combination of communication protocols optimized for different use cases: low-latency trading operations, reliable message delivery, and efficient data streaming.
 
 ## Protocol Matrix
 
@@ -212,17 +212,14 @@ service GuardianService {
 message TradingStatus {
   bool trading_allowed = 1;
   double current_daily_pnl = 2;
-  double daily_loss_limit = 3;
-  double remaining_capacity = 4;
+  double daily_loss_limit = 3;       // 1% of NAV (since October 2025)
+  double cumulative_loss_limit = 4;  // 5% of NAV
   SystemState state = 5;
 }
 
-enum SystemState {
-  ACTIVE = 0;
-  REDUCED = 1;    // Reduced position sizes
-  CLOSING = 2;    // Closing positions only
-  HALTED = 3;     // All trading stopped
-}
+// Daily limit: stops order generation and closes open positions; resumes next session.
+// Cumulative limit: closes all positions; resumes only after partner review and approval.
+// Neither limit can be manually overridden.
 ```
 
 ### 3. Redis Streams (Event Streaming)

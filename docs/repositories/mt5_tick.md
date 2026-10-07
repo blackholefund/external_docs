@@ -20,10 +20,7 @@
 flowchart TB
     subgraph mt5Tick["mt5_tick"]
         subgraph feedHandler["MT5 Data Feed Handler"]
-            XAUUSD["XAUUSD Feed"]
-            EURUSD["EURUSD Feed"]
-            USDJPY["USDJPY Feed"]
-            etc["..."]
+            XAUUSD["XAUUSD Feed\n(GOLD# at OnEquity)"]
         end
 
         subgraph aggregator["Tick Aggregator"]
@@ -50,7 +47,7 @@ flowchart TB
 Manages connections to MT5 servers and processes incoming tick data.
 
 **Capabilities:**
-- Multiple symbol subscription
+- Gold only (XAUUSD, traded as GOLD# at OnEquity)
 - Automatic reconnection
 - Tick sequence validation
 - Gap detection and reporting
@@ -200,6 +197,10 @@ Validation Rules:
 ├── Spread validity       → Reject if spread < 0
 └── Volume validity       → Reject if volume < 0
 ```
+
+### Anomaly Handling
+
+Market data is automatically cross-validated between sources. Depending on the anomaly, the system discards the tick, freezes execution or pauses trading; a pause requires manual release.
 
 ### Gap Handling
 

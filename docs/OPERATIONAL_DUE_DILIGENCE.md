@@ -1,10 +1,25 @@
 # Operational Due Diligence
 
+*Genese Capital (formerly BlackHole Capital). Last reviewed September 2026.*
+
 ## Overview
 
-This document provides information to assist prospective investors in conducting due diligence on BlackHole Fund's PAMM (Percentage Allocation Management Module) trading operation. It addresses common questions across key operational areas.
+This document provides information to assist prospective investors in conducting operational due diligence on Genese Capital's PAMM trading operation. The full *Due Diligence Reference* is available on request. Performance is published on [Myfxbook](https://www.myfxbook.com/members/blackholeai/blackhole-fund/11784758) and is not repeated here.
 
-**Important:** BlackHole Fund operates as a PAMM account manager, NOT a regulated investment fund. Your capital remains in your own broker account at all times.
+**Important:** Genese Capital currently operates as a PAMM account manager, NOT as a regulated investment fund. All client capital is held by OnEquity as broker and custodian.
+
+## Corporate and Legal Structure
+
+| Item | Detail |
+|------|--------|
+| Brand | Genese Capital (formerly BlackHole Capital) |
+| Current operating entities | BlackHole Capital Ltd. (Hong Kong) and WEAP Global Limited (Hong Kong), both owned by the founding partners |
+| Future structure | Genese Capital fund in the Cayman Islands, in the process of being established. Registration details will be provided once completed |
+| Broker, execution venue and custodian | OnEquity Ltd, licensed by the Seychelles Financial Services Authority as a Securities Dealer (licence no. SD154) |
+| Client custody | All client capital is held by OnEquity. Genese does not hold client funds at any time |
+| Track record | [Myfxbook](https://www.myfxbook.com/members/blackholeai/blackhole-fund/11784758) |
+
+Genese owns the strategy, manages the PAMM accounts, controls risk and operates the infrastructure. OnEquity acts solely as broker, execution venue and custodian. Until the Cayman fund is launched, BlackHole Capital Ltd. and WEAP Global Limited remain the contracting entities. Under the Cayman fund structure, execution will connect directly to the liquidity provider rather than through a retail broker.
 
 ## Operational Structure
 
@@ -12,20 +27,18 @@ This document provides information to assist prospective investors in conducting
 
 ```mermaid
 flowchart TB
-    subgraph Manager["BlackHole Trading"]
-        Master["Master Account\n(Strategy Execution)"]
-        Systems["Trading Systems\n& Infrastructure"]
+    subgraph Manager["Genese Capital"]
+        Systems["Strategy, Risk Control\n& Infrastructure"]
     end
 
-    subgraph Broker["Broker (Tier-1 regulated PAMM partner)"]
+    subgraph Broker["OnEquity Ltd (broker, execution venue, custodian)"]
         PAMM["PAMM Platform"]
-        Inv1["Investor Account 1"]
-        Inv2["Investor Account 2"]
-        Inv3["Investor Account N"]
+        Inv1["Investor PAMM Account 1"]
+        Inv2["Investor PAMM Account 2"]
+        Inv3["Investor PAMM Account N"]
     end
 
-    Master --> PAMM
-    Systems --> Master
+    Systems --> PAMM
     PAMM --> Inv1
     PAMM --> Inv2
     PAMM --> Inv3
@@ -33,302 +46,152 @@ flowchart TB
 
 | Component | Description |
 |-----------|-------------|
-| Master Account | BlackHole's trading account where strategies execute |
-| PAMM Platform | Broker system that copies trades proportionally |
-| Investor Accounts | Individual accounts owned by each investor |
+| PAMM accounts | Dedicated PAMM account at OnEquity with Genese as manager |
+| PAMM platform | Broker system that allocates results proportionally |
+| Custody | OnEquity in all cases |
 
-### Key Personnel
+Each PAMM account runs this single strategy only; there is no blending of strategies within an account. The client may contract with OnEquity (broker and custodian), with Genese (manager), or both.
 
-| Role | Responsibility |
-|------|----------------|
-| Lead Trader | Strategy development and execution |
-| Risk Manager | Position monitoring and risk controls |
-| Systems Engineer | Trading infrastructure and automation |
+### Team
 
-### Operational Continuity
+| Name | Role |
+|------|------|
+| Pedro | Co-founder, Director & CEO |
+| Wellington | Co-founder, Director & CTO |
+| Maurício Mendes Dutra | Director |
 
-- Fully documented trading systems and processes
-- Automated execution reduces key-person dependency
-- Cross-training on critical functions
-- Systems designed for autonomous operation
+| Function | Headcount |
+|----------|-----------|
+| Directors | 3 |
+| Quantitative team | 3 |
+| Developers (remote) | 4 |
+| Introducing brokers (global distribution) | 20+ |
 
-## Service Providers
+All strategy development is internal; no core logic is outsourced.
 
-### Broker & Execution
+### Human Oversight
 
-| Provider | Role |
-|----------|------|
-| **Tier 1 Liquidity** | Primary execution venue for gold |
-| **Tier-1 regulated broker** | PAMM platform and execution (name provided on request/NDA) |
+- Execution is fully automated
+- A dedicated trader monitors execution in real time and has an emergency stop
+- Both partners have full-stop authority and direct account access
 
-### Broker Features
+## Governance and Process
 
-| Feature | Details |
-|---------|---------|
-| Account Segregation | Client funds segregated per regulations |
-| PAMM Platform | Automated trade copying and allocation |
-| Reporting | Real-time position and P&L visibility |
-| Withdrawals | Direct through broker platform |
+- Monthly research and recalibration cycle: performance analysis, volatility-regime assessment, parameter evaluation
+- Staged deployment - demo, proprietary capital, production. No parameter change goes directly to production
+- Weekly governance meeting between the partners
+- Lot and risk adjustments are system-generated and require management approval
 
-### Infrastructure Providers
-
-| Service | Provider |
-|---------|----------|
-| Cloud Infrastructure | Dual-site colocation (EU) |
-| Market Data | Licensed providers + exchange feeds |
-| Monitoring | Prometheus, Grafana |
+Genese's commitments are formalised through agreements that may include an Investment Management Agreement, Risk Disclosure Statement, Operational SLA and Governance & Risk Policy.
 
 ## Technology & Infrastructure
 
 ### System Architecture
 
-| Component | Technology | Redundancy |
-|-----------|------------|------------|
-| Trading Systems | Proprietary | Dual-region |
-| Risk Management | Proprietary | Dual-region |
-| Data Infrastructure | Multi-site | Dual-site redundancy |
-| Connectivity | Multiple ISPs | Failover |
+Proprietary multi-component architecture deployed across **two European data centres** (primary and disaster recovery) with automatic failover.
 
-### Disaster Recovery
+| Component | Technology | Function |
+|-----------|------------|----------|
+| mt5_executor | C++ | Order execution |
+| mt5_tick | C++ | Tick processing |
+| bh-risk | Go | Risk and position sizing |
+| bh-guardian | Rust | Circuit breaker and protection |
+| bh-quant-engine | Python | Quantitative analysis and signals |
+| bh-core | Go | Orchestration |
+| bh-market-gateway | Go / Rust | Market data |
 
-| Metric | Target | Tested |
-|--------|--------|--------|
-| RTO (Recovery Time) | < 1 hour | Quarterly |
-| RPO (Recovery Point) | < 1 minute | Quarterly |
-| DR Site | Secondary EU datacenter | Active-active |
+### Controls and Continuity
 
-### Cybersecurity
+| Area | Implementation |
+|------|----------------|
+| Server-side controls | Core risk controls are enforced by Genese infrastructure; broker protections are secondary safeguards. MT5 acts only as an execution connector |
+| Broker connection | Heartbeat every second, with a secondary OnEquity server (Amsterdam) if the primary (London) is unavailable. On disconnection new orders are suspended and existing positions remain managed |
+| Alerting | Partners are alerted through an internal app and dashboard |
+| Market data | Automatic cross-validation between sources. Depending on the anomaly, the system discards the tick, freezes execution or pauses trading; a pause requires manual release |
+| PAMM reconciliation | Hourly reconciliation with the PAMM platform, with automatic pause and alert on divergence |
+| Failover | Automatic failover between the primary and disaster-recovery data centres |
+
+### Access and Security
 
 | Control | Implementation |
 |---------|----------------|
-| Access Control | Multi-factor authentication |
-| Encryption | TLS 1.3, AES-256 at rest |
-| Network Security | Firewalls, IDS/IPS, VPN |
-| Monitoring | Centralized logging with alerting |
-| Testing | Annual penetration testing |
-| Training | Quarterly security awareness |
-
-### Business Continuity
-
-| Scenario | Plan |
-|----------|------|
-| Office unavailable | Remote work capability |
-| Key system failure | Automated failover |
-| Data loss | Real-time replication |
-| Personnel unavailable | Cross-training, documentation |
-
-### Change Management & SDLC
-
-| Control | Practice |
-|---------|----------|
-| Code Changes | Peer review and mandatory approvals |
-| Deployments | CI/CD with staged rollouts and rollback plans |
-| Configuration | Versioned, audited changes with change tickets |
-| Release Notes | Documented per release for strategy + infra updates |
-
-### Incident Response
-
-| Stage | Practice |
-|-------|----------|
-| Detection | Automated alerts and on-call escalation |
-| Triage | Severity classification within defined SLAs |
-| Remediation | Documented runbooks and post-incident review |
-| Communication | Investor updates for material incidents |
-
-### Data Governance
-
-| Area | Practice |
-|------|----------|
-| Data Lineage | Source attribution for market and alternative data |
-| Retention | Tiered retention with archival policies |
-| Access | Role-based permissions with audit logging |
+| Authentication | Passkey authentication with 2FA on all access |
+| Network | Servers on an internal network reachable only via VPN |
+| Credentials | Rotated quarterly |
+| Institutional monitoring | Account monitoring via API rather than investor passwords |
 
 ## Trading Operations
 
-### Order Management
+### Order Flow
 
 ```mermaid
 flowchart LR
     Signal["Signal\nGeneration"] --> Risk["Risk\nCheck"]
-    Risk --> Approval["Approval\n(Automated)"]
-    Approval --> Execution["Order\nExecution"]
-    Execution --> Confirm["Trade\nConfirmation"]
-    Confirm --> Reconcile["Reconciliation"]
+    Risk --> Guardian["Circuit Breaker\n(bh-guardian)"]
+    Guardian --> Execution["Order\nExecution"]
+    Execution --> Reconcile["PAMM\nReconciliation\n(hourly)"]
 ```
-
-| Step | Automation | Oversight |
-|------|------------|-----------|
-| Signal Generation | Fully automated | Algorithm monitoring |
-| Risk Check | Fully automated | Parameter review |
-| Execution | Fully automated | Execution quality review |
-| Confirmation | Automated matching | Exception handling |
-| Reconciliation | Daily automated | Breaks investigated |
-
-### Trade Reconciliation
-
-| Type | Frequency | Process |
-|------|-----------|---------|
-| Position | Daily | System vs. broker |
-| Cash | Daily | System vs. bank |
-| P&L | Daily | System vs. admin |
-| NAV | Weekly | Internal vs. admin |
-
-### Error Handling
-
-| Error Type | Detection | Resolution |
-|------------|-----------|------------|
-| Trade break | Automated alert | Same-day investigation |
-| System failure | Automated monitoring | Immediate failover |
-| Data issue | Validation checks | Source correction |
 
 ## Risk Management
 
-### Risk Governance
-
-```mermaid
-flowchart TB
-    Board["Board of Directors"] --> RC["Risk Committee"]
-    RC --> CRO["Chief Risk Officer"]
-    CRO --> Daily["Daily Risk Review"]
-    CRO --> Systems["Risk Systems"]
-```
-
 ### Risk Limits
 
-| Limit | Value | Monitoring |
-|-------|-------|------------|
-| Daily Loss | 1% NAV | Real-time |
-| Weekly Loss | 3% NAV | Daily |
-| Position Size | 25% NAV | Pre-trade |
-| Gross Exposure | 200% NAV | Real-time |
-| VaR (95%) | 1.5% NAV | Daily |
+| Control | Limit | Action |
+|---------|-------|--------|
+| Loss per position | 25.00 move in the gold price (2,500 per lot) | Position closed; subject to spread widening |
+| Daily loss | 1% of NAV (since October 2025) | Stops order generation and closes open positions; resumes automatically next session |
+| Cumulative drawdown | 5% of NAV | Closes all positions; resumes only after partner review and approval |
+| Margin | 10% of NAV | Internal limit |
+| Size per order | Approx. 7.5 lots on 4.2m NAV | Scales with NAV |
+| Broker | Margin call at 10% | Independent of Genese infrastructure |
 
-### Independent Risk Oversight
-
-- CRO reports to Board, not PM
-- Daily risk reports to management
-- Monthly risk reports to Board
-- Quarterly risk committee meetings
+Daily and cumulative limits are enforced server-side by `bh-guardian` and cannot be manually overridden. See the [Risk Framework](risk-management/framework.md) for details.
 
 ## Regulatory Status
 
 ### Important Disclosure
 
-**BlackHole Fund is NOT a regulated investment fund.**
+**Genese Capital is NOT a regulated investment fund.** It currently operates as a PAMM account manager through BlackHole Capital Ltd. and WEAP Global Limited. It does not provide investment advice and does not hold client funds.
 
 | Aspect | Status |
 |--------|--------|
-| Fund Registration | None - PAMM account management only |
-| Manager Registration | Not registered as investment adviser |
-| Investor Protection | None beyond broker's own protections |
+| Fund | Cayman Islands fund in the process of being established; registration details to follow once completed |
+| Manager | PAMM account manager through BlackHole Capital Ltd. and WEAP Global Limited (Hong Kong) |
+| Broker / custodian | OnEquity Ltd, Seychelles FSA, Securities Dealer licence no. SD154 |
 
-### Broker Regulation
+### Jurisdictions
 
-Your funds are held at the broker you select (PAMM partner), which maintains its own regulatory status. Please verify:
-
-- Broker's regulatory registration
-- Client fund segregation policies
-- Deposit protection schemes (if any)
+OnEquity does not onboard residents of the United States, Canada and sanctioned or restricted territories (including North Korea, Myanmar, Iran, Yemen, Syria, Sudan and Russia). Other jurisdictions follow OnEquity's onboarding policies and, once launched, the Cayman fund's offering documents.
 
 ### Investor Responsibility
 
 | Requirement | Responsibility |
 |-------------|----------------|
-| KYC/AML | Handled by broker during account opening |
+| KYC/AML | Handled by the broker during account opening |
 | Tax Reporting | Investor's responsibility |
 | Regulatory Compliance | Investor must comply with local laws |
 
-## Account Valuation
+## Reading the Account History
 
-### Real-Time Transparency
+Reviewers working from the MT5 statement or Myfxbook should note:
 
-PAMM accounts provide complete transparency through the broker platform:
-
-| Information | Access |
-|-------------|--------|
-| Open Positions | Real-time via broker |
-| Account Balance | Real-time via broker |
-| Trade History | Full history in platform |
-| P&L | Real-time floating and realized |
-
-### Pricing
-
-| Asset | Source |
-|-------|--------|
-| XAU/USD Spot | Broker feed (aggregated liquidity) |
-| Account Equity | Broker calculation |
-| Performance | PAMM platform metrics |
-
-## Reporting & Transparency
-
-### What You Can See
-
-| Information | How to Access |
-|-------------|---------------|
-| All Trades | Broker platform (real-time) |
-| Position Sizes | Broker platform (real-time) |
-| Floating P&L | Broker platform (real-time) |
-| Performance Stats | PAMM leaderboard |
-| Historical Returns | Broker reports |
-
-### What We Provide
-
-| Report | Frequency | Content |
-|--------|-----------|---------|
-| Performance Summary | Monthly | Returns, drawdown, key metrics |
-| Strategy Commentary | Monthly | Market outlook, positioning |
-| Risk Report | On request | VaR, exposure analysis |
-
-**Note:** All official account data comes from your broker. Our reports supplement but do not replace broker statements.
-
-## Protection & Insurance
-
-### Broker-Level Protection
-
-Your funds are protected by your broker's measures:
-
-| Protection | Details |
-|------------|---------|
-| Segregated Accounts | Client funds separate from broker |
-| Broker Regulation | Check broker's regulatory status |
-| Deposit Insurance | Varies by broker and jurisdiction |
-
-### Our Operational Protections
-
-| Measure | Implementation |
-|---------|----------------|
-| System Redundancy | Dual-region deployment |
-| Risk Controls | Automated circuit breakers |
-| Access Security | MFA, encrypted communications |
-
-**Important:** We do not hold your funds. Protection depends on your broker.
+- **Close By.** Positions are closed by opening an opposite position and netting both via Close By. MT5 books the whole result of the pair on one leg and zero on the other, so splitting the history by direction does not reflect economic attribution.
+- **Balance movements.** Growth of the account balance is mainly due to investor deposits, which is why Myfxbook *Gain* (time-weighted) and *Absolute Gain* differ. Performance fees are booked as balance operations.
+- **Configuration history.** See [Production Change History](PRODUCTION_CHANGE_HISTORY.md).
 
 ## Due Diligence Information
 
-### Information Available
-
 | Information | Available |
 |-------------|-----------|
-| Track Record | Yes (via PAMM platform) |
-| Trading Strategy Overview | Yes |
-| Risk Management Description | Yes |
-| Infrastructure Overview | Yes |
-| Fee Structure | Yes |
-
-### Questions to Ask Your Broker
-
-Before joining any PAMM, verify with your broker:
-
-1. How are client funds segregated?
-2. What regulatory oversight applies?
-3. What deposit protection exists?
-4. How are PAMM fees calculated and deducted?
-5. What are withdrawal terms and timing?
+| Track Record | Yes - public Myfxbook record |
+| Due Diligence Reference | On request |
+| Strategy, risk and infrastructure overview | Yes - this repository |
+| Fee Structure | Yes - see [Executive Summary](EXECUTIVE_SUMMARY.md) |
 
 ### Contact
 
-For questions about joining the PAMM, contact details are provided during onboarding or through the broker's referral process.
+Contact details are provided during onboarding or through an introducing broker.
 
 ---
 
-**Disclaimer:** BlackHole Fund is a PAMM trading operation, not a regulated investment fund. This document is for informational purposes only. Your broker is the custodian of your funds - conduct due diligence on your broker's regulatory status and protections.
+**Disclaimer:** Genese Capital (formerly BlackHole Capital) is a PAMM trading operation, not a regulated investment fund. This document is for informational purposes only. OnEquity is the custodian of client funds - conduct due diligence on the broker's regulatory status and protections.
